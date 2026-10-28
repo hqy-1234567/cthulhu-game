@@ -25,9 +25,8 @@ const bgCanvas = document.getElementById("bgCanvas"), fxCanvas = document.getEle
 const bgCtx = bgCanvas.getContext("2d"), fxCtx = fxCanvas.getContext("2d");
 const scoreEl = document.getElementById("score"), ammoEl = document.getElementById("ammo"), redFlashEl = document.getElementById("redFlash");
 let W, H, DPR = Math.min(window.devicePixelRatio || 1, 2);
-let time = 0;
 
-// 图片加载
+// 加载图片
 const monsterImg = new Image(); monsterImg.src = "monster.jpg"; let monsterLoaded = false; monsterImg.onload = () => monsterLoaded = true;
 const gunImg = new Image(); gunImg.src = "qiang.png"; let gunLoaded = false; gunImg.onload = () => gunLoaded = true;
 
@@ -39,21 +38,21 @@ const state = {
 
 const monster = { 
   baseX: 0, baseY: 0, w: 0, h: 0, 
-  hurt: 0, shake: 0, knock: 0, breath: 0, swell: 1 
+  hurt: 0, shake: 0, knock: 0, breath: 0
 };
 
-// 10个眼睛
+// 10个眼睛，精准对位
 const eyes = [
-  {x:0.50, y:0.45, r:0.20, isBoss:true, hp:20, maxHp:20, alive:true, lookX:0, lookY:0},
-  {x:0.48, y:0.15, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.13, y:0.46, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.18, y:0.52, r:0.028, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.24, y:0.78, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.85, y:0.45, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.82, y:0.51, r:0.032, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.74, y:0.80, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.50, y:0.70, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
-  {x:0.50, y:0.88, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}
+  {x:0.50, y:0.45, r:0.20, isBoss:true, hp:20, maxHp:20, alive:true},
+  {x:0.48, y:0.15, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.13, y:0.46, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.18, y:0.52, r:0.028, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.24, y:0.78, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.85, y:0.45, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.82, y:0.51, r:0.032, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.74, y:0.80, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.50, y:0.70, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true},
+  {x:0.50, y:0.88, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true}
 ];
 
 let audioCtx;
@@ -76,7 +75,7 @@ function resize() {
 }
 
 function resetGame() {
-  monster.baseX = W/2; monster.baseY = H*0.5; monster.knock = 0; monster.swell = 1;
+  monster.baseX = W/2; monster.baseY = H*0.45; monster.knock = 0; 
   eyes.forEach(e => { e.alive = true; e.hp = e.maxHp; });
   state.ammo = state.maxAmmo; updateAmmo();
   state.isReloading = false; state.reloadTimer = 0; state.gunY = 0;
@@ -87,20 +86,16 @@ function updateAmmo() { ammoEl.textContent = "🔴".repeat(state.ammo) + "⚫".r
 
 addEventListener("resize", resize); resize();
 addEventListener("mousemove", e => { state.mouseX = e.clientX; state.mouseY = e.clientY; });
-addEventListener("touchmove", e => { if(e.touches[0]) { state.mouseX = e.touches[0].clientX; state.mouseY = e.touches[0].clientY; } }, {passive:true});
-addEventListener("mousedown", shoot); addEventListener("touchstart", shoot);
+addEventListener("mousedown", shoot); 
 addEventListener("keydown", e => { if((e.key === "r" || e.key === "R") && state.ammo < state.maxAmmo && !state.isReloading) { state.isReloading = true; state.reloadTimer = 0; } });
 
 function shoot() {
   if(!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
   if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
-  if(state.isReloading || state.ammo <= 0) {
-    if(state.ammo <= 0 && !state.isReloading) { state.isReloading = true; state.reloadTimer = 0; }
-    return;
-  }
+  if(state.isReloading || state.ammo <= 0) return;
 
-  const bY = Math.sin(monster.breath)*15;
+  const bY = Math.sin(monster.breath)*10;
   const mX = monster.baseX;
   const mY = monster.baseY + bY - monster.knock;
   const mw = monster.w;
@@ -115,7 +110,7 @@ function shoot() {
   for(let eye of eyes) {
     if(!eye.alive) continue;
     const ex = mX + mw * (eye.x - 0.5), ey = mY + mh * (eye.y - 0.5);
-    if(Math.hypot(state.mouseX - ex, state.mouseY - ey) < mw * eye.r + 35) {
+    if(Math.hypot(state.mouseX - ex, state.mouseY - ey) < mw * eye.r + 40) {
       eye.hp--; 
       monster.hurt = eye.isBoss ? 2 : 0.8; 
       monster.shake = eye.isBoss ? 80 : 50; 
@@ -129,33 +124,26 @@ function shoot() {
         particles.push({ x: ex, y: ey, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp-5, r: 4+Math.random()*12, life: 1, decay: 0.02, col: ["#3d0000", "#5c0000", "#1a0000", "#800000"][Math.floor(Math.random()*4)] });
       }
       
-      if(eye.hp <= 0) { 
-        eye.alive = false; 
-        state.score++; scoreEl.textContent = state.score; 
-        monster.shake += 50; monster.knock += 40; 
-      }
+      if(eye.hp <= 0) { eye.alive = false; state.score++; scoreEl.textContent = state.score; }
       return;
     }
   }
-  
   if(eyes.every(e => !e.alive)) resetGame();
   if(state.ammo <= 0) state.isReloading = true;
 }
-
-function loop() {
-  time += 0.04; 
-  
+  function loop() {
   if(monster.hurt > 0) monster.hurt *= 0.85; 
   if(monster.shake > 0) monster.shake *= 0.85; 
   if(monster.knock > 0) monster.knock *= 0.85;
   
   monster.breath += 0.02; 
-  const bY = Math.sin(monster.breath)*15;
+  const bY = Math.sin(monster.breath)*10;
   const mX = monster.baseX;
   const mY = monster.baseY + bY - monster.knock;
   
-  monster.w = 600; 
-  monster.h = 800;
+  // 怪物大小（占屏幕的70%）
+  monster.w = W * 0.7; 
+  monster.h = H * 0.7;
 
   if(state.flash > 0) state.flash *= 0.86; 
   if(state.recoil > 0) state.recoil *= 0.75; 
@@ -164,19 +152,7 @@ function loop() {
 
   if(state.isReloading) {
     state.reloadTimer += 16;
-    if(state.reloadTimer < 300) state.gunY = Math.sin((state.reloadTimer/300)*Math.PI/2)*250;
-    else if(state.reloadTimer < 1000) state.gunY = 250;
-    else {
-      const p = (state.reloadTimer - 1000)/300; state.gunY = 250 * (1 - Math.sin(p*Math.PI/2));
-      if(state.reloadTimer > 1300) { state.isReloading = false; state.reloadTimer = 0; state.gunY = 0; state.ammo = state.maxAmmo; updateAmmo(); }
-    }
-  }
-
-  for(let eye of eyes) {
-    if(!eye.alive) continue;
-    const ex = mX + monster.w * (eye.x - 0.5), ey = mY + monster.h * (eye.y - 0.5);
-    eye.lookX += ((state.mouseX - ex)/200 - eye.lookX)*0.1; 
-    eye.lookY += ((state.mouseY - ey)/200 - eye.lookY)*0.1;
+    if(state.reloadTimer > 1000) { state.isReloading = false; state.reloadTimer = 0; state.ammo = state.maxAmmo; updateAmmo(); }
   }
 
   const shX = (Math.random()-0.5)*state.shake, shY = (Math.random()-0.5)*state.shake;
@@ -184,37 +160,34 @@ function loop() {
   bgCtx.clearRect(0,0,W,H); 
   bgCtx.save(); 
   bgCtx.translate(shX, shY); 
-  bgCtx.fillStyle='#050505'; 
+  bgCtx.fillStyle='#0a0a0a'; 
   bgCtx.fillRect(0,0,W,H);
   
+  // ==========================================
+  // 绘制怪物（加入提亮滤镜，防止黑底看不见）
+  // ==========================================
   if(monsterLoaded) {
     bgCtx.save(); 
     bgCtx.translate(mX, mY); 
     
-    // 直接绘制完整怪物
+    // 滤镜：提高亮度
+    bgCtx.filter = 'brightness(1.5) contrast(1.2)';
     bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
+    bgCtx.filter = 'none';
 
-    // 绘制眼睛（带红色标记）
+    // 绘制眼睛标记（红色圆圈）
     for(let eye of eyes) {
       if(!eye.alive) continue;
       const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
-      const danger = 1 - (eye.hp / eye.maxHp);
-      const er = monster.w*eye.r*(1 + danger*0.8); 
-      const sw = monsterImg.width*(eye.r*2.5), sh = monsterImg.height*(eye.r*2.5);
-      const sx = monsterImg.width*eye.x - sw/2, sy = monsterImg.height*eye.y - sh/2;
+      const er = monster.w*eye.r; 
       
       bgCtx.save(); 
-      bgCtx.translate(ex + eye.lookX*(monster.w*0.05), ey + eye.lookY*(monster.w*0.05));
-      
+      bgCtx.translate(ex, ey);
       bgCtx.beginPath(); 
-      const mg = bgCtx.createRadialGradient(0,0,er*0.5,0,0,er*1.2);
-      mg.addColorStop(0,'rgba(0,0,0,1)'); mg.addColorStop(0.8,'rgba(0,0,0,0.9)'); mg.addColorStop(1,'rgba(0,0,0,0)');
-      bgCtx.fillStyle=mg; bgCtx.arc(0,0,er*1.2,0,Math.PI*2); bgCtx.fill();
-      
-      bgCtx.globalCompositeOperation = 'source-in'; 
-      bgCtx.drawImage(monsterImg, sx, sy, sw, sh, -er*1.2, -er*1.2, er*2.4, er*2.4);
-      
-      if (danger > 0.1) { bgCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.6})`; bgCtx.fillRect(-er*1.2, -er*1.2, er*2.4, er*2.4); }
+      bgCtx.arc(0, 0, er, 0, Math.PI*2); 
+      bgCtx.strokeStyle = "#ff0000"; 
+      bgCtx.lineWidth = 3;
+      bgCtx.stroke();
       bgCtx.restore();
     }
     bgCtx.restore(); 
@@ -225,12 +198,14 @@ function loop() {
   fxCtx.save(); 
   fxCtx.translate(shX, shY);
   
+  // 血液粒子
   for(const p of particles) { 
     p.x += p.vx; p.y += p.vy; p.vy += 0.6; p.life -= p.decay; 
     if(p.life > 0) { fxCtx.globalAlpha = p.life; fxCtx.beginPath(); fxCtx.arc(p.x, p.y, p.r, 0, Math.PI*2); fxCtx.fillStyle = p.col; fxCtx.fill(); } 
   }
   particles = particles.filter(p => p.life > 0);
   
+  // 弹壳
   for(const s of shells) {
     s.x += s.vx; s.y += s.vy; s.vy += 0.5; s.rot += s.rotSpd;
     fxCtx.save(); fxCtx.translate(s.x, s.y); fxCtx.rotate(s.rot);
@@ -259,6 +234,7 @@ function loop() {
     fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
     fxCtx.restore();
 
+    // 开火火焰
     if(state.flash > 0) {
       fxCtx.save(); 
       fxCtx.rotate(-Math.PI * 0.15); 
