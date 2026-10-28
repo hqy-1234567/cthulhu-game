@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>克苏鲁降临 · 随机抗揍破屏版</title>
+<title>克苏鲁降临 · 终极血肉融合版</title>
 <style>
   html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#000;touch-action:none;cursor:crosshair;font-family:sans-serif;position:fixed;}
   canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%;}
@@ -45,7 +45,6 @@ bgImg.onload = ()=>{
 
 function drawBgImage(scale, offsetX, offsetY, time){
   if(!imgLoaded) return;
-  
   const imgRatio = bgImg.width / bgImg.height;
   const screenRatio = W / H;
   
@@ -66,6 +65,7 @@ function drawBgImage(scale, offsetX, offsetY, time){
 
   bgCtx.drawImage(bgImg, imgDrawX + offsetX, imgDrawY + offsetY, imgDrawW, imgDrawH);
   
+  // 肌肉痉挛波纹
   const pulse = Math.sin(time * 8) * 0.5 + 0.5;
   const gradient = bgCtx.createRadialGradient(
     W/2, H/2, Math.min(W,H)*0.2,
@@ -110,30 +110,38 @@ let t0=performance.now();
 let bgShakeIntensity = 0; 
 let bgPulseScale = 1; 
 
+// ========================================================
+// 【精准尺寸配置】根据原图精确定位与大小
+// ========================================================
 const eyeConfigs = [
-  { x: 0.5,   y: 0.48,  r: 0.14,  isBoss: true },
-  { x: 0.22,  y: 0.35,  r: 0.035 },
-  { x: 0.15,  y: 0.48,  r: 0.04 },
-  { x: 0.24,  y: 0.62,  r: 0.035 },
-  { x: 0.78,  y: 0.35,  r: 0.035 },
-  { x: 0.82,  y: 0.48,  r: 0.04 },
-  { x: 0.74,  y: 0.65,  r: 0.03 },
-  { x: 0.5,   y: 0.18,  r: 0.025 },
-  { x: 0.5,   y: 0.82,  r: 0.04 },
-  { x: 0.42,  y: 0.88,  r: 0.025 },
-  { x: 0.58,  y: 0.88,  r: 0.025 }
+  // 上方小眼
+  { x: 0.50,   y: 0.145,  r: 0.038,  isBoss: false },
+  
+  // 右侧区
+  { x: 0.72,   y: 0.28,   r: 0.042,  isBoss: false },
+  { x: 0.82,   y: 0.42,   r: 0.042,  isBoss: false },
+  { x: 0.80,   y: 0.52,   r: 0.038,  isBoss: false },
+
+  // 左侧区
+  { x: 0.16,   y: 0.35,   r: 0.042,  isBoss: false },
+  { x: 0.13,   y: 0.43,   r: 0.045,  isBoss: false },
+
+  // 【核心大眼】原图大小
+  { x: 0.50,   y: 0.47,   r: 0.155,  isBoss: true },
+
+  // 下方区域
+  { x: 0.28,   y: 0.62,   r: 0.038,  isBoss: false },
+  { x: 0.74,   y: 0.62,   r: 0.038,  isBoss: false },
+  { x: 0.50,   y: 0.74,   r: 0.042,  isBoss: false },
+  { x: 0.38,   y: 0.82,   r: 0.042,  isBoss: false },
+  { x: 0.62,   y: 0.82,   r: 0.042,  isBoss: false }
 ];
 
 let eyes = [];
 
 function getRandomHp(isBoss) {
-  if (isBoss) {
-    // 主眼 20 ~ 30 次
-    return Math.floor(Math.random() * 11) + 20; 
-  } else {
-    // 小眼 8 ~ 15 次
-    return Math.floor(Math.random() * 8) + 8;
-  }
+  if (isBoss) return Math.floor(Math.random() * 11) + 20; 
+  return Math.floor(Math.random() * 8) + 8; 
 }
 
 function updateEyePositions(){
@@ -147,8 +155,8 @@ function updateEyePositions(){
       id: index,
       baseX: imgDrawX + imgDrawW * cfg.x,
       baseY: imgDrawY + imgDrawH * cfg.y,
-      baseR: Math.min(imgDrawW, imgDrawH) * cfg.r * 2.5,
-      currentR: Math.min(imgDrawW, imgDrawH) * cfg.r * 2.5,
+      baseR: Math.min(imgDrawW, imgDrawH) * cfg.r * 1.5, 
+      currentR: Math.min(imgDrawW, imgDrawH) * cfg.r * 1.5,
       maxHp: hp,
       hp: hp,
       alive: true,
@@ -165,7 +173,7 @@ function getEyePos(eye){
   const time = (performance.now()-t0)/1000;
   const shakeX = (Math.random()-0.5) * eye.shake + Math.sin(time*20)*1.5;
   const shakeY = (Math.random()-0.5) * eye.shake + Math.cos(time*18)*1.5;
-  const breatheScale = 1 + Math.sin(time*(eye.isBoss?2:5) + eye.id) * (eye.isBoss?0.02:0.06); 
+  const breatheScale = 1 + Math.sin(time*(eye.isBoss?2:5) + eye.id) * (eye.isBoss?0.02:0.05); 
   return { x: eye.baseX + shakeX, y: eye.baseY + shakeY, scale: breatheScale };
 }
 
@@ -194,19 +202,18 @@ function hit(px,py){
     if(!eye.alive) continue;
 
     const pos = getEyePos(eye);
-    const clickRadius = eye.currentR * pos.scale * (1 + eye.z) + 35;
+    const clickRadius = eye.currentR * pos.scale * (1 + eye.z) + 40; 
     
     if(Math.hypot(px-pos.x, py-pos.y) < clickRadius){ 
       eye.hp--;
-      eye.shake = 12; 
+      eye.shake = 15; 
       
-      // 【核心调整】不再疯狂变大，而是慢慢膨胀，凸显凸出感
       if(eye.isBoss){
-        eye.currentR *= 1.02; 
+        eye.currentR *= 1.03; 
         eye.z += 0.1; 
       } else {
-        eye.currentR *= 1.08; // 每次膨胀8%，10次左右刚好变大一圈
-        eye.z += 0.25;        // 凸出感越来越强
+        eye.currentR *= 1.08; 
+        eye.z += 0.2;        
       }
       
       bgShakeIntensity = eye.isBoss ? 12 : 6; 
@@ -279,105 +286,50 @@ function loop(now){
     const r = eye.currentR * pos.scale * zFactor;
     const danger = 1 - (eye.hp / eye.maxHp);
     
-    if(eye.isBoss) {
-      const drawR = r * 1.1; 
-      
-      fxCtx.save();
-      // 立体阴影（越凸出，阴影越偏、越模糊）
-      fxCtx.beginPath();
-      fxCtx.arc(pos.x + 15 * zFactor, pos.y + 20 * zFactor, drawR * 1.05, 0, Math.PI*2);
-      fxCtx.fillStyle = `rgba(0,0,0,${0.6 + danger*0.3})`;
-      fxCtx.filter = `blur(${12 * zFactor}px)`;
-      fxCtx.fill();
-      fxCtx.filter = 'none'; 
+    // ========================================================
+    // 【边缘无缝融合】抹去所有生硬轮廓
+    // ========================================================
+    const drawR = r * 1.1; 
+    
+    fxCtx.save();
+    
+    // 1. 底层阴影（不画线，纯模糊）
+    fxCtx.beginPath();
+    fxCtx.arc(pos.x + 10 * zFactor, pos.y + 15 * zFactor, drawR * 0.95, 0, Math.PI*2);
+    fxCtx.fillStyle = `rgba(0,0,0,${0.5 + danger*0.4})`;
+    fxCtx.filter = `blur(${12 * zFactor}px)`;
+    fxCtx.fill();
+    fxCtx.filter = 'none'; 
 
-      // 渲染眼珠本体
-      fxCtx.beginPath();
-      const maskGrad = fxCtx.createRadialGradient(pos.x, pos.y, drawR*0.6, pos.x, pos.y, drawR);
-      maskGrad.addColorStop(0, 'rgba(0,0,0,1)');
-      maskGrad.addColorStop(0.9, 'rgba(0,0,0,1)');
-      maskGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
-      fxCtx.fillStyle = maskGrad;
-      fxCtx.arc(pos.x, pos.y, drawR, 0, Math.PI*2);
-      fxCtx.fill();
-      
-      fxCtx.globalCompositeOperation = 'source-in';
-      const srcW = bgImg.width * 0.35;
-      const srcH = bgImg.height * 0.35;
-      const srcX = bgImg.width * 0.5 - srcW/2;
-      const srcY = bgImg.height * 0.48 - srcH/2;
-      fxCtx.drawImage(bgImg, srcX, srcY, srcW, srcH, pos.x - drawR, pos.y - drawR, drawR*2, drawR*2);
-      
-      // 球面高光与暗角
-      const sphereGrad = fxCtx.createRadialGradient(
-        pos.x - drawR*0.4, pos.y - drawR*0.4, drawR*0.1,
-        pos.x, pos.y, drawR
-      );
-      sphereGrad.addColorStop(0, 'rgba(255,255,255,0.1)'); 
-      sphereGrad.addColorStop(0.7, 'rgba(0,0,0,0)');
-      sphereGrad.addColorStop(1, 'rgba(0,0,0,0.8)'); 
-      fxCtx.fillStyle = sphereGrad;
+    // 2. 遮罩渲染，边缘羽化 30%，像肉一样自然过渡
+    fxCtx.beginPath();
+    const maskGrad = fxCtx.createRadialGradient(pos.x, pos.y, drawR*0.6, pos.x, pos.y, drawR);
+    maskGrad.addColorStop(0, 'rgba(0,0,0,1)');
+    maskGrad.addColorStop(0.7, 'rgba(0,0,0,1)'); // 核心区完全保留
+    maskGrad.addColorStop(1, 'rgba(0,0,0,0)');   // 边缘完全透明，融入肉体
+    fxCtx.fillStyle = maskGrad;
+    fxCtx.arc(pos.x, pos.y, drawR, 0, Math.PI*2);
+    fxCtx.fill();
+    
+    fxCtx.globalCompositeOperation = 'source-in';
+    
+    // 3. 从原图中裁切
+    const srcW = eye.isBoss ? bgImg.width * 0.35 : bgImg.width * 0.15;
+    const srcH = eye.isBoss ? bgImg.height * 0.35 : bgImg.height * 0.15;
+    const srcX = bgImg.width * eyeConfigs[i].x - srcW/2;
+    const srcY = bgImg.height * eyeConfigs[i].y - srcH/2;
+    
+    fxCtx.drawImage(bgImg, srcX, srcY, srcW, srcH, pos.x - drawR, pos.y - drawR, drawR*2, drawR*2);
+    
+    // 4. 充血
+    if(danger > 0){
+      fxCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.6})`;
       fxCtx.fillRect(pos.x - drawR, pos.y - drawR, drawR*2, drawR*2);
-
-      if(danger > 0){
-        fxCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.5})`;
-        fxCtx.fillRect(pos.x - drawR, pos.y - drawR, drawR*2, drawR*2);
-      }
-      fxCtx.restore();
-
-    } else {
-      // 小眼渲染
-      fxCtx.save();
-      
-      // 小眼立体阴影
-      fxCtx.beginPath(); 
-      fxCtx.arc(pos.x + 8 * zFactor, pos.y + 10 * zFactor, r, 0, Math.PI*2); 
-      fxCtx.fillStyle = `rgba(0,0,0,${0.5 + danger*0.3})`; 
-      fxCtx.filter = `blur(${5 * zFactor}px)`;
-      fxCtx.fill();
-      fxCtx.filter = 'none'; 
-
-      fxCtx.beginPath();
-      fxCtx.arc(pos.x, pos.y, r, 0, Math.PI*2);
-      fxCtx.clip();
-
-      const eyeSrcW = bgImg.width * 0.15;
-      const eyeSrcH = bgImg.height * 0.15;
-      const eyeSrcX = bgImg.width * eyeConfigs[i].x - eyeSrcW/2;
-      const eyeSrcY = bgImg.height * eyeConfigs[i].y - eyeSrcH/2;
-      
-      fxCtx.drawImage(bgImg, eyeSrcX, eyeSrcY, eyeSrcW, eyeSrcH, pos.x - r, pos.y - r, r*2, r*2);
-
-      // 小眼球面立体感
-      const sphereGrad = fxCtx.createRadialGradient(
-        pos.x - r*0.3, pos.y - r*0.3, r*0.1,
-        pos.x, pos.y, r
-      );
-      sphereGrad.addColorStop(0, 'rgba(255,255,255,0.2)'); 
-      sphereGrad.addColorStop(1, 'rgba(0,0,0,0.6)'); 
-      fxCtx.fillStyle = sphereGrad;
-      fxCtx.fillRect(pos.x - r, pos.y - r, r*2, r*2);
-
-      if(danger > 0){
-        fxCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.7})`;
-        fxCtx.fillRect(pos.x - r, pos.y - r, r*2, r*2);
-      }
-      
-      // 充血血丝
-      fxCtx.strokeStyle=`rgba(150,0,0,${0.4+danger*0.6})`; 
-      for(let k=0;k<5+danger*10;k++){
-        const a = k*0.8 + time*0.5 + i;
-        fxCtx.beginPath();
-        fxCtx.moveTo(pos.x+Math.cos(a)*r, pos.y+Math.sin(a)*r);
-        fxCtx.quadraticCurveTo(pos.x+Math.cos(a+0.5)*r*0.5, pos.y+Math.sin(a+0.5)*r*0.5, pos.x, pos.y);
-        fxCtx.lineWidth = Math.random()*1.5 + 0.5;
-        fxCtx.stroke();
-      }
-      fxCtx.restore(); 
     }
+    fxCtx.restore(); 
   }
 
-  // 血浆粒子渲染
+  // 渲染血浆
   for(let i=particles.length-1;i>=0;i--){
     const p = particles[i];
     p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.vx *= 0.98; 
@@ -405,7 +357,7 @@ function loop(now){
     fxCtx.globalAlpha = 1;
   }
 
-  // 屏幕污渍
+  // 渲染污渍
   for(let i=splats.length-1;i>=0;i--){
     const s = splats[i];
     s.life -= 0.0015; s.drip += Math.random() * 1.5; 
