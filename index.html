@@ -131,7 +131,7 @@ function loop() {
   // 枪（物理级修正版）
 if(gunImg.complete) {
   // 1. 设定枪的固定位置（右下角）
-  const bX = W * 0.85, bY = H * 0.95;
+  const bX = W * 0.8, bY = H * 0.95;
   
   // 2. 计算枪指向鼠标的角度
   const ang = Math.atan2(state.my - bY, state.mx - bX);
@@ -146,7 +146,7 @@ if(gunImg.complete) {
   fxCtx.scale(0.7, 0.7);
   
   // 5. 【关键】修正枪的图片朝向
-  fxCtx.rotate(-Math.PI * 0.15); 
+  fxCtx.rotate(-Math.PI * 0); 
   
   // 画出枪（注意这里的偏移量 -180, -200 决定了枪的中心点在哪）
   fxCtx.drawImage(gunImg, -180, -200, 500, 375);
