@@ -1,380 +1,348 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>克苏鲁降临 · 终极血肉融合版</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>克苏鲁降临 · 废土第一人称</title>
 <style>
-  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#000;touch-action:none;cursor:crosshair;font-family:sans-serif;position:fixed;}
+  :root{
+    --hud-bg:rgba(0,0,0,.6); --hud-brd:rgba(255,200,0,.8);
+    --text:#fff; --ammo:#ffcc00;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0; padding:0; height:100%; width:100%; overflow:hidden; background:#000;
+    touch-action:none; font-family:"Courier New",monospace; position:fixed; cursor:none;
+  }
   canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%;}
-  #hud{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10;
-    color:#fff;font-size:16px;text-shadow:0 0 10px #f00;font-weight:bold;pointer-events:none;}
+  #redFlash{position:fixed;inset:0;background:rgba(255,0,0,0);pointer-events:none;z-index:20;transition:background .12s linear;}
+  #hud{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:10;
+    color:var(--text);font-size:15px;letter-spacing:3px;font-weight:900;
+    text-shadow:2px 2px 0 #000; pointer-events:none;text-align:center;
+    background:var(--hud-bg);padding:10px 20px;border-radius:4px;border:3px solid var(--hud-brd);
+    transform: translateX(-50%) rotate(-2deg);
+  }
+  #ammo{font-size:24px;color:var(--ammo);letter-spacing:8px; text-shadow:2px 2px 0 #000;}
 </style>
 </head>
 <body>
-<div id="hud">戳爆所有的眼睛！已爆 <span id="score">0</span></div>
+<div id="redFlash"></div>
+<div id="hud">
+  <div>KILLS: <span id="score">0</span> <span style="font-size:11px;color:#aaa">(R TO RELOAD)</span></div>
+  <div id="ammo">🔴🔴🔴🔴🔴🔴</div>
+</div>
 <canvas id="bgCanvas"></canvas>
 <canvas id="fxCanvas"></canvas>
 
 <script>
-const bgCanvas=document.getElementById('bgCanvas'), bgCtx=bgCanvas.getContext('2d');
-const fxCanvas=document.getElementById('fxCanvas'), fxCtx=fxCanvas.getContext('2d');
-const scoreEl=document.getElementById('score');
+(() => {
+  const bgCanvas = document.getElementById("bgCanvas");
+  const fxCanvas = document.getElementById("fxCanvas");
+  const bgCtx = bgCanvas.getContext("2d");
+  const fxCtx = fxCanvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const ammoEl = document.getElementById("ammo");
+  const redFlashEl = document.getElementById("redFlash");
 
-let W,H; 
-let imgLoaded = false; 
-let imgDrawX = 0, imgDrawY = 0, imgDrawW = 0, imgDrawH = 0;
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-function resize(){
-  W=window.innerWidth; H=window.innerHeight;
-  bgCanvas.width=fxCanvas.width=W; 
-  bgCanvas.height=fxCanvas.height=H;
-  if(imgLoaded) { drawBgImage(1, 0, 0, 0); updateEyePositions(); }
-}
-window.addEventListener('resize',resize); resize();
+  // ==================== 资源 ====================
+  const monsterImg = new Image(); monsterImg.src = "monster.jpg"; let monsterImgLoaded = false; monsterImg.onload = () => { monsterImgLoaded = true; };
+  const handImg = new Image(); handImg.src = "hand.png"; let handImgLoaded = false; handImg.onload = () => { handImgLoaded = true; };
+  const gunImg = new Image(); gunImg.src = "qiang.png"; let gunImgLoaded = false; gunImg.onload = () => { gunImgLoaded = true; };
 
-const bgImageSrc = 'monster.jpg'; 
-const bgImg = new Image();
-bgImg.src = bgImageSrc;
+  const state = {
+    isReloading: false, mouseX: window.innerWidth / 2, mouseY: window.innerHeight / 2,
+    recoil: 0, muzzleFlash: 0, reloadTimer: 0, verticalRecoil: 0,
+    maxAmmo: 6, currentAmmo: 6, score: 0, time: 0,
+    screenShake: 0, weaponOffsetY: 0, weaponShakeX: 0, shellEjectTimer: 0,
+    gunTilt: 0
+  };
 
-bgImg.onload = ()=>{ 
-  imgLoaded = true; 
-  drawBgImage(1, 0, 0, 0);
-  updateEyePositions();
-};
+  const monster = {
+    x: 0, y: 0, baseX:0, baseY:0, w: 320, h: 480,
+    hp: 120, maxHp: 120, hurt: 0, state: 0, speed: 0.35, knockback: 0, breathPhase: 0,
+    swell: 1.0, tentacleState: 'idle', tentacleTimer: 0, strikeOffsetY: 0, strikeScaleY: 1 
+  };
 
-function drawBgImage(scale, offsetX, offsetY, time){
-  if(!imgLoaded) return;
-  const imgRatio = bgImg.width / bgImg.height;
-  const screenRatio = W / H;
-  
-  if (screenRatio > imgRatio) {
-    imgDrawH = H; imgDrawW = H * imgRatio; 
-    imgDrawX = (W - imgDrawW) / 2; imgDrawY = 0;
-  } else {
-    imgDrawW = W; imgDrawH = W / imgRatio; 
-    imgDrawX = 0; imgDrawY = (H - imgDrawH) / 2;
+  const acidSplats = [], mists = [], particles = [], splats = [], smokes = [], shells = [];
+  const blackVeins = Array.from({length: 25}, () => ({
+    a: Math.random() * Math.PI * 2, len: 0.2 + Math.random() * 0.5, w: 1 + Math.random() * 3, phase: Math.random() * Math.PI * 2
+  }));
+
+  let audioCtx;
+  function playGunSound(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'square'; osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+    gain.gain.setValueAtTime(0.5, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(t); osc.stop(t + 0.15);
   }
 
-  bgCtx.clearRect(0,0,W,H);
-  bgCtx.save();
-  
-  bgCtx.translate(W/2, H/2);
-  bgCtx.scale(scale, scale);
-  bgCtx.translate(-W/2, -H/2);
-
-  bgCtx.drawImage(bgImg, imgDrawX + offsetX, imgDrawY + offsetY, imgDrawW, imgDrawH);
-  
-  // 肌肉痉挛波纹
-  const pulse = Math.sin(time * 8) * 0.5 + 0.5;
-  const gradient = bgCtx.createRadialGradient(
-    W/2, H/2, Math.min(W,H)*0.2,
-    W/2 + Math.sin(time*3)*20, H/2 + Math.cos(time*2)*20, Math.max(W,H)*0.7
-  );
-  gradient.addColorStop(0, 'rgba(0,0,0,0)');
-  gradient.addColorStop(0.5, `rgba(80, 0, 0, ${0.1 + pulse*0.1})`); 
-  gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
-  bgCtx.fillStyle = gradient;
-  bgCtx.fillRect(0,0,W,H);
-  
-  bgCtx.restore();
-}
-
-// ---------- 音频 ----------
-let actx;
-function initAudio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); }
-function soundPop(huge=false){
-  if(!actx)return; const t=actx.currentTime;
-  const o=actx.createOscillator(),g=actx.createGain();
-  o.type='sine'; o.frequency.setValueAtTime(huge?100:300+Math.random()*200,t);
-  o.frequency.exponentialRampToValueAtTime(30,t+(huge?0.4:0.1));
-  g.gain.setValueAtTime(huge?0.8:0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+(huge?0.5:0.15));
-  o.connect(g).connect(actx.destination); o.start(t); o.stop(t+(huge?0.6:0.15));
-}
-function soundSquish(){
-  if(!actx)return; const t=actx.currentTime;
-  const buf=actx.createBuffer(1,actx.sampleRate*0.25,actx.sampleRate);
-  const d=buf.getChannelData(0);
-  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
-  const s=actx.createBufferSource(); s.buffer=buf;
-  const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=500;
-  const g=actx.createGain(); g.gain.value=0.4;
-  s.connect(f).connect(g).connect(actx.destination); s.start(t);
-}
-function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
-
-// ---------- 游戏状态 ----------
-let score=0;
-let particles=[], splats=[];
-let t0=performance.now();
-let bgShakeIntensity = 0; 
-let bgPulseScale = 1; 
-
-// ========================================================
-// 【精准尺寸配置】根据原图精确定位与大小
-// ========================================================
-const eyeConfigs = [
-  // 上方小眼
-  { x: 0.50,   y: 0.145,  r: 0.038,  isBoss: false },
-  
-  // 右侧区
-  { x: 0.72,   y: 0.28,   r: 0.042,  isBoss: false },
-  { x: 0.82,   y: 0.42,   r: 0.042,  isBoss: false },
-  { x: 0.80,   y: 0.52,   r: 0.038,  isBoss: false },
-
-  // 左侧区
-  { x: 0.16,   y: 0.35,   r: 0.042,  isBoss: false },
-  { x: 0.13,   y: 0.43,   r: 0.045,  isBoss: false },
-
-  // 【核心大眼】原图大小
-  { x: 0.50,   y: 0.47,   r: 0.155,  isBoss: true },
-
-  // 下方区域
-  { x: 0.28,   y: 0.62,   r: 0.038,  isBoss: false },
-  { x: 0.74,   y: 0.62,   r: 0.038,  isBoss: false },
-  { x: 0.50,   y: 0.74,   r: 0.042,  isBoss: false },
-  { x: 0.38,   y: 0.82,   r: 0.042,  isBoss: false },
-  { x: 0.62,   y: 0.82,   r: 0.042,  isBoss: false }
-];
-
-let eyes = [];
-
-function getRandomHp(isBoss) {
-  if (isBoss) return Math.floor(Math.random() * 11) + 20; 
-  return Math.floor(Math.random() * 8) + 8; 
-}
-
-function updateEyePositions(){
-  eyes = eyeConfigs.map((cfg, index) => {
-    let existing = eyes.find(e => e.id === index);
-    if(existing && !existing.alive) return existing;
-    
-    const hp = getRandomHp(cfg.isBoss);
-    
-    return {
-      id: index,
-      baseX: imgDrawX + imgDrawW * cfg.x,
-      baseY: imgDrawY + imgDrawH * cfg.y,
-      baseR: Math.min(imgDrawW, imgDrawH) * cfg.r * 1.5, 
-      currentR: Math.min(imgDrawW, imgDrawH) * cfg.r * 1.5,
-      maxHp: hp,
-      hp: hp,
-      alive: true,
-      shake: 0,
-      isBoss: cfg.isBoss || false,
-      z: 0 
-    };
+  window.addEventListener("mousemove", e => { state.mouseX = e.clientX; state.mouseY = e.clientY; });
+  window.addEventListener("touchmove", e => {
+    if(e.touches && e.touches[0]) { state.mouseX = e.touches[0].clientX; state.mouseY = e.touches[0].clientY; }
+  }, {passive:true});
+  window.addEventListener("mousedown", e => { if(e.button === 0) shoot(); });
+  window.addEventListener("touchstart", e => {
+    if(e.touches && e.touches[0]) { state.mouseX = e.touches[0].clientX; state.mouseY = e.touches[0].clientY; shoot(); }
+  }, {passive:true});
+  window.addEventListener("keydown", e => {
+    if((e.key === "r" || e.key === "R") && !state.isReloading && state.currentAmmo < state.maxAmmo) startReload();
   });
-  score = 0;
-  scoreEl.textContent = score;
-}
 
-function getEyePos(eye){
-  const time = (performance.now()-t0)/1000;
-  const shakeX = (Math.random()-0.5) * eye.shake + Math.sin(time*20)*1.5;
-  const shakeY = (Math.random()-0.5) * eye.shake + Math.cos(time*18)*1.5;
-  const breatheScale = 1 + Math.sin(time*(eye.isBoss?2:5) + eye.id) * (eye.isBoss?0.02:0.05); 
-  return { x: eye.baseX + shakeX, y: eye.baseY + shakeY, scale: breatheScale };
-}
+  function startReload(){ state.isReloading = true; state.reloadTimer = 0; state.shellEjectTimer = 0; }
 
-function spawnBlood(x, y, count, isExplosion) {
-  for(let i=0; i<count; i++){
-    const a = Math.random() * Math.PI * 2;
-    const sp = isExplosion ? (10 + Math.random() * 25) : (4 + Math.random() * 10);
-    const size = isExplosion ? (5 + Math.random() * 20) : (3 + Math.random() * 8);
-    const colors = ['#8a0000', '#5c0000', '#b30000', '#330000'];
-    particles.push({
-      x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (isExplosion ? 8 : 3), 
-      r: size, life: 1, decay: isExplosion ? (0.005 + Math.random() * 0.01) : 0.02,
-      color: colors[Math.floor(Math.random()*colors.length)], isClot: Math.random() > 0.6
+  function shoot(){
+    if(state.isReloading || state.currentAmmo <= 0) return;
+    state.currentAmmo--; updateAmmoUI();
+    state.muzzleFlash = 1; 
+    state.recoil = 35; 
+    state.gunTilt = (Math.random() - 0.5) * 0.4; 
+    state.verticalRecoil = 15; 
+    playGunSound();
+    state.screenShake = 25; 
+
+    shells.push({
+      x: W * 0.75, y: H * 0.85, vx: (Math.random() - 0.5) * 5 + 3, vy: -8 - Math.random() * 4,
+      rot: Math.random() * Math.PI, rotSpeed: (Math.random() - 0.5) * 0.3, life: 1, size: 1
     });
-  }
-}
 
-function hit(px,py){
-  initAudio();
-  if(!imgLoaded) return;
+    const hitMainEye = pointInRect(state.mouseX, state.mouseY, monster.baseX - monster.w * 0.18, monster.baseY - monster.h * 0.22, monster.w * 0.36, monster.h * 0.28);
+    const hitAny = pointInRect(state.mouseX, state.mouseY, monster.baseX - monster.w / 2, monster.baseY - monster.h / 2, monster.w, monster.h);
 
-  eyes.sort((a, b) => b.z - a.z);
-
-  for(let i = 0; i < eyes.length; i++){
-    const eye = eyes[i];
-    if(!eye.alive) continue;
-
-    const pos = getEyePos(eye);
-    const clickRadius = eye.currentR * pos.scale * (1 + eye.z) + 40; 
-    
-    if(Math.hypot(px-pos.x, py-pos.y) < clickRadius){ 
-      eye.hp--;
-      eye.shake = 15; 
-      
-      if(eye.isBoss){
-        eye.currentR *= 1.03; 
-        eye.z += 0.1; 
-      } else {
-        eye.currentR *= 1.08; 
-        eye.z += 0.2;        
-      }
-      
-      bgShakeIntensity = eye.isBoss ? 12 : 6; 
-      soundSquish();
-      vibrate(eye.isBoss ? 40 : 20); 
-      spawnBlood(px, py, eye.isBoss ? 10 : 5, false);
-
-      if(eye.hp <= 0){
-        eye.alive = false; 
-        score += eye.isBoss ? 10 : 1; 
-        scoreEl.textContent = score;
-        soundPop(eye.isBoss);
-        vibrate(eye.isBoss ? [100, 50, 100, 50, 300] : [50, 30, 50]); 
-        
-        if(eye.isBoss) {
-          bgShakeIntensity = 50; 
-          bgPulseScale *= 1.1; 
-        }
-        spawnBlood(pos.x, pos.y, eye.isBoss ? 200 : 40, true);
-
-        for(let j=0;j<(eye.isBoss?12:4);j++){
-          splats.push({
-            x: pos.x + (Math.random()-0.5)*eye.currentR*2.5,
-            y: pos.y + (Math.random()-0.5)*eye.currentR*2.5,
-            r: eye.currentR * (0.2+Math.random()*0.8), 
-            life: 1, drip: 0, color: 'rgba(60,0,0,0.85)'
-          });
-        }
-      } else {
-        score++; scoreEl.textContent = score;
-      }
-      return; 
-    }
-  }
-}
-fxCanvas.addEventListener('touchstart',e=>{e.preventDefault(); hit(e.touches[0].clientX, e.touches[0].clientY);});
-fxCanvas.addEventListener('mousedown',e=>{e.preventDefault(); hit(e.clientX,e.clientY);});
-
-function loop(now){
-  if(!imgLoaded){ requestAnimationFrame(loop); return; }
-  const time=(now-t0)/1000;
-  
-  fxCtx.clearRect(0,0,W,H);
-  
-  const basePulse = Math.sin(time * 3) * 0.008; 
-  let shakeX_bg = 0, shakeY_bg = 0;
-  
-  if(bgShakeIntensity > 0.5){
-    shakeX_bg = (Math.random() - 0.5) * bgShakeIntensity;
-    shakeY_bg = (Math.random() - 0.5) * bgShakeIntensity;
-    bgShakeIntensity *= 0.85; 
-  }
-
-  const currentBgScale = bgPulseScale + basePulse;
-  drawBgImage(currentBgScale, shakeX_bg, shakeY_bg, time);
-
-  eyes.sort((a, b) => a.z - b.z);
-
-  for(let i = 0; i < eyes.length; i++){
-    const eye = eyes[i];
-    if(!eye.alive) continue;
-
-    if(eye.shake > 0) eye.shake *= 0.9;
-
-    const pos = getEyePos(eye);
-    pos.x += shakeX_bg;
-    pos.y += shakeY_bg;
-
-    const zFactor = 1 + eye.z;
-    const r = eye.currentR * pos.scale * zFactor;
-    const danger = 1 - (eye.hp / eye.maxHp);
-    
-    // ========================================================
-    // 【边缘无缝融合】抹去所有生硬轮廓
-    // ========================================================
-    const drawR = r * 1.1; 
-    
-    fxCtx.save();
-    
-    // 1. 底层阴影（不画线，纯模糊）
-    fxCtx.beginPath();
-    fxCtx.arc(pos.x + 10 * zFactor, pos.y + 15 * zFactor, drawR * 0.95, 0, Math.PI*2);
-    fxCtx.fillStyle = `rgba(0,0,0,${0.5 + danger*0.4})`;
-    fxCtx.filter = `blur(${12 * zFactor}px)`;
-    fxCtx.fill();
-    fxCtx.filter = 'none'; 
-
-    // 2. 遮罩渲染，边缘羽化 30%，像肉一样自然过渡
-    fxCtx.beginPath();
-    const maskGrad = fxCtx.createRadialGradient(pos.x, pos.y, drawR*0.6, pos.x, pos.y, drawR);
-    maskGrad.addColorStop(0, 'rgba(0,0,0,1)');
-    maskGrad.addColorStop(0.7, 'rgba(0,0,0,1)'); // 核心区完全保留
-    maskGrad.addColorStop(1, 'rgba(0,0,0,0)');   // 边缘完全透明，融入肉体
-    fxCtx.fillStyle = maskGrad;
-    fxCtx.arc(pos.x, pos.y, drawR, 0, Math.PI*2);
-    fxCtx.fill();
-    
-    fxCtx.globalCompositeOperation = 'source-in';
-    
-    // 3. 从原图中裁切
-    const srcW = eye.isBoss ? bgImg.width * 0.35 : bgImg.width * 0.15;
-    const srcH = eye.isBoss ? bgImg.height * 0.35 : bgImg.height * 0.15;
-    const srcX = bgImg.width * eyeConfigs[i].x - srcW/2;
-    const srcY = bgImg.height * eyeConfigs[i].y - srcH/2;
-    
-    fxCtx.drawImage(bgImg, srcX, srcY, srcW, srcH, pos.x - drawR, pos.y - drawR, drawR*2, drawR*2);
-    
-    // 4. 充血
-    if(danger > 0){
-      fxCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.6})`;
-      fxCtx.fillRect(pos.x - drawR, pos.y - drawR, drawR*2, drawR*2);
-    }
-    fxCtx.restore(); 
-  }
-
-  // 渲染血浆
-  for(let i=particles.length-1;i>=0;i--){
-    const p = particles[i];
-    p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.vx *= 0.98; 
-    p.life -= p.decay;
-    if(p.life <= 0){ particles.splice(i,1); continue; }
-    
-    fxCtx.globalAlpha = Math.min(1, p.life * 2); 
-    const speed = Math.hypot(p.vx, p.vy);
-    if(speed > 2) {
-      fxCtx.beginPath(); fxCtx.moveTo(p.x, p.y);
-      fxCtx.lineTo(p.x - p.vx * 1.5, p.y - p.vy * 1.5);
-      fxCtx.lineWidth = p.r * 0.6; fxCtx.lineCap = 'round';
-      fxCtx.strokeStyle = p.color; fxCtx.stroke();
-    }
-    fxCtx.beginPath();
-    if(p.isClot) {
-      fxCtx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
-      fxCtx.fillStyle = p.color; fxCtx.fill();
+    if(hitMainEye){
+      monster.hp -= 25; monster.hurt = 2.0; monster.knockback = 35; monster.swell += 0.08; 
+      redFlashEl.style.background = "rgba(255,0,0,0.4)"; setTimeout(() => redFlashEl.style.background = "rgba(255,0,0,0)", 120);
+      spawnBlood(state.mouseX, state.mouseY, true, true); 
+      if (monster.tentacleState === 'idle' && Math.random() > 0.5) { monster.tentacleState = 'charging'; monster.tentacleTimer = 0; }
+    } else if(hitAny){
+      monster.hp -= 10; monster.hurt = 0.8; monster.knockback = 12; monster.swell += 0.03; spawnBlood(state.mouseX, state.mouseY, false, false);
     } else {
-      fxCtx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
-      const grad = fxCtx.createRadialGradient(p.x - p.r*0.3, p.y - p.r*0.3, p.r*0.1, p.x, p.y, p.r);
-      grad.addColorStop(0, '#ff4d4d'); grad.addColorStop(0.7, p.color); 
-      fxCtx.fillStyle = grad; fxCtx.fill();
+      smokes.push({ x: state.mouseX, y: state.mouseY, vx: (Math.random() - 0.5) * 0.6, vy: -0.4 - Math.random() * 0.4, r: 10, life: 1, decay: 0.03 });
     }
-    fxCtx.globalAlpha = 1;
+
+    if(monster.hp <= 0){ state.score++; scoreEl.textContent = state.score; monster.swell = 1.5; respawnMonster(); }
+    if(monster.hp < monster.maxHp * 0.35) monster.state = 1;
+    if(state.currentAmmo <= 0) startReload();
   }
 
-  // 渲染污渍
-  for(let i=splats.length-1;i>=0;i--){
-    const s = splats[i];
-    s.life -= 0.0015; s.drip += Math.random() * 1.5; 
-    if(s.life <= 0){ splats.splice(i,1); continue; }
+  function respawnMonster(){ setTimeout(() => { monster.swell = 1.0; }, 100); monster.hp = monster.maxHp; monster.state = 0; monster.baseX = W / 2; monster.baseY = H * 0.32; monster.knockback = 0; monster.tentacleState='idle'; monster.strikeOffsetY=0; monster.strikeScaleY=1; }
+  function pointInRect(px, py, x, y, w, h){ return px >= x && px <= x + w && py >= y && py <= y + h; }
+
+  function spawnBlood(x, y, critical, isMainEye){
+    const count = isMainEye ? 40 : (critical ? 20 : 10); 
+    const colors = ["#e60000", "#a30000", "#5c0000", "#1f0000", "#330000"];
+    for(let i = 0; i < count; i++){
+      const a = Math.random() * Math.PI * 2; const sp = isMainEye ? (5 + Math.random() * 12) : (3 + Math.random() * 7);
+      particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (critical ? 12 : 5), r: 2 + Math.random() * 6, life: 1, decay: 0.015 + Math.random() * 0.015, color: colors[Math.floor(Math.random() * colors.length)], isClot: Math.random() > 0.6, gravity: 0.6, drag: 0.95 });
+    }
+  }
+
+  function updateAmmoUI(){ let str = ""; for(let i = 0; i < state.maxAmmo; i++) str += i < state.currentAmmo ? "🔴" : "⚫"; ammoEl.textContent = str; }
+  updateAmmoUI();
+
+  function resize(){
+    W = window.innerWidth; H = window.innerHeight;
+    bgCanvas.width = W * DPR; bgCanvas.height = H * DPR;
+    fxCanvas.width = W * DPR; fxCanvas.height = H * DPR;
+    bgCtx.setTransform(DPR, 0, 0, DPR, 0, 0); fxCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    respawnMonster();
+  }
+  resize(); window.addEventListener("resize", resize);
+
+  function loop(ts){ state.time = ts; update(); render(); requestAnimationFrame(loop); }
+
+  function update(){
+    const dx = state.mouseX - monster.baseX; const dy = state.mouseY - monster.baseY;
+    monster.baseX += dx * monster.speed * 0.012; monster.baseY += dy * monster.speed * 0.012;
+    monster.hurt *= 0.85; 
+    monster.breathPhase += 0.02; monster.knockback *= 0.88;
+    const breathOffsetY = Math.sin(monster.breathPhase) * 15;
+    monster.y = monster.baseY + breathOffsetY - monster.knockback; monster.x = monster.baseX;
+    monster.swell += (1.0 - monster.swell) * 0.005;
+
+    state.screenShake *= 0.85; 
+    state.recoil *= 0.75; 
+    state.gunTilt *= 0.8; 
+    state.verticalRecoil *= 0.84; state.muzzleFlash *= 0.86;
+
+    if(state.isReloading){
+      state.reloadTimer += 16; 
+      if (state.reloadTimer < 300) {
+        state.weaponOffsetY = Math.sin((state.reloadTimer / 300) * Math.PI / 2) * 250; 
+      } else if (state.reloadTimer < 1000) {
+        state.weaponOffsetY = 250;
+        state.weaponShakeX = (Math.random() - 0.5) * 35; 
+        if (state.reloadTimer - state.shellEjectTimer > 80) {
+          state.shellEjectTimer = state.reloadTimer;
+          shells.push({ x: W * 0.75 + (Math.random() - 0.5) * 30, y: H * 1.1, vx: (Math.random() - 0.5) * 10, vy: -10 - Math.random() * 5, rot: Math.random() * Math.PI, rotSpeed: (Math.random() - 0.5) * 0.5, life: 1, size: 0.8 });
+        }
+      } else {
+        const progress = (state.reloadTimer - 1000) / 300; 
+        state.weaponOffsetY = 250 * (1 - Math.sin(progress * Math.PI / 2));
+        state.weaponShakeX = 0;
+        if (state.reloadTimer > 1300) { state.isReloading = false; state.currentAmmo = state.maxAmmo; updateAmmoUI(); state.weaponOffsetY = 0; }
+      }
+    } else {
+      state.weaponOffsetY += (0 - state.weaponOffsetY) * 0.2;
+      state.weaponShakeX *= 0.8;
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){ const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.vx *= p.drag; p.life -= p.decay; if(p.life <= 0) particles.splice(i, 1); }
+    for(let i = splats.length - 1; i >= 0; i--){ const s = splats[i]; s.life -= 0.0006; s.drip += Math.random() * 0.8; if(s.life <= 0) splats.splice(i, 1); }
+    for(let i = smokes.length - 1; i >= 0; i--){ const s = smokes[i]; s.x += s.vx; s.y += s.vy; s.r += 1.2; s.life -= s.decay; if(s.life <= 0) smokes.splice(i, 1); }
+    for(let i = shells.length - 1; i >= 0; i--){ const sh = shells[i]; sh.x += sh.vx; sh.y += sh.vy; sh.vy += 0.5; sh.vx *= 0.98; sh.rot += sh.rotSpeed; sh.life -= 0.012; if(sh.life <= 0) shells.splice(i, 1); }
+  }
+
+  // ==================== 无主之地风格粗描边渲染 ====================
+  function drawWithOutline(img, x, y, w, h) {
+    fxCtx.save();
+    fxCtx.shadowColor = '#000';
+    fxCtx.shadowBlur = 0;
+    const offset = 6; 
+    fxCtx.shadowOffsetX = offset; fxCtx.shadowOffsetY = 0; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = -offset; fxCtx.shadowOffsetY = 0; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = 0; fxCtx.shadowOffsetY = offset; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = 0; fxCtx.shadowOffsetY = -offset; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = offset; fxCtx.shadowOffsetY = offset; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = -offset; fxCtx.shadowOffsetY = -offset; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = offset; fxCtx.shadowOffsetY = -offset; fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.shadowOffsetX = -offset; fxCtx.shadowOffsetY = offset; fxCtx.drawImage(img, x, y, w, h);
     
-    fxCtx.globalAlpha = s.life * 0.8;
-    fxCtx.fillStyle = s.color;
-    fxCtx.beginPath(); fxCtx.arc(s.x, s.y, s.r, 0, Math.PI*2); fxCtx.fill();
-    fxCtx.beginPath(); fxCtx.moveTo(s.x - s.r*0.6, s.y);
-    fxCtx.quadraticCurveTo(s.x, s.y + s.drip, s.x + s.r*0.4, s.y);
-    fxCtx.fill(); fxCtx.beginPath(); fxCtx.arc(s.x - s.r*0.1, s.y + s.drip, s.r*0.2, 0, Math.PI*2); fxCtx.fill();
-    fxCtx.globalAlpha = 1;
+    fxCtx.shadowColor = 'transparent';
+    fxCtx.shadowOffsetX = 0; fxCtx.shadowOffsetY = 0;
+    fxCtx.filter = 'contrast(1.2) saturate(1.2)';
+    fxCtx.drawImage(img, x, y, w, h);
+    fxCtx.filter = 'none';
+    fxCtx.restore();
+  }
+
+  function render(){
+    bgCtx.clearRect(0, 0, W, H);
+    const shakeX = (Math.random() - 0.5) * state.screenShake;
+    const shakeY = (Math.random() - 0.5) * state.screenShake;
+    
+    bgCtx.save();
+    bgCtx.translate(shakeX, shakeY); 
+    bgCtx.fillStyle = '#1a1a1a';
+    bgCtx.fillRect(0,0,W,H);
+
+    monster.w = Math.min(W * 0.92, H * 0.72); monster.h = monster.w * 1.4;
+
+    if(monsterImgLoaded){
+      bgCtx.save(); 
+      const hurtShakeX = (Math.random() - 0.5) * monster.hurt * 30;
+      const hurtShakeY = (Math.random() - 0.5) * monster.hurt * 30;
+      bgCtx.translate(monster.x + hurtShakeX, monster.y + hurtShakeY); 
+      bgCtx.filter = 'contrast(1.1)';
+      bgCtx.drawImage(monsterImg, -monster.w / 2, -monster.h / 2, monster.w, monster.h);
+      bgCtx.filter = 'none';
+      bgCtx.restore();
+    }
+    bgCtx.restore();
+
+    fxCtx.clearRect(0, 0, W, H);
+    fxCtx.save();
+    fxCtx.translate(shakeX, shakeY);
+
+    for(const p of particles){ fxCtx.globalAlpha = Math.min(1, p.life * 2.5); fxCtx.beginPath(); fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2); fxCtx.fillStyle = p.color; fxCtx.fill(); fxCtx.globalAlpha = 1; }
+    
+    // 弹壳
+    for(const sh of shells){ 
+      fxCtx.save(); fxCtx.translate(sh.x, sh.y); fxCtx.rotate(sh.rot); fxCtx.globalAlpha = sh.life; 
+      fxCtx.fillStyle = "#000"; 
+      const w = 16 * (sh.size||1); const h = 8 * (sh.size||1);
+      fxCtx.fillRect(-w/2, -h/2, w, h); 
+      fxCtx.fillStyle = "#ffcc00"; 
+      fxCtx.fillRect(-w/2+2, -h/2+2, w-4, h-4); 
+      fxCtx.restore(); fxCtx.globalAlpha = 1; 
+    }
+
+    // ==================== 核心渲染：手枪与手 ====================
+    if(handImgLoaded && gunImgLoaded){
+      // 第一人称支点：屏幕右下角
+      const baseX = W * 0.8 + state.weaponShakeX; 
+      const baseY = H * 1.05 + state.weaponOffsetY; 
+      
+      // 枪口追踪准星
+      const angle = Math.atan2(state.mouseY - baseY, state.mouseX - baseX);
+      
+      // 后坐力偏移
+      const recX = Math.cos(angle) * state.recoil; 
+      const recY = Math.sin(angle) * state.recoil;
+
+      fxCtx.save();
+      // 整体跟随鼠标旋转 + 开枪歪斜
+      fxCtx.translate(baseX + recX, baseY + recY); 
+      fxCtx.rotate(angle + state.gunTilt); 
+      
+      // 放大以产生第一人称压迫感
+      const scale = Math.max(0.8, Math.min(1.4, W / 600)); 
+      fxCtx.scale(scale, scale);
+
+      // 1. 画枪（底层）：调整偏移和旋转，让枪管斜向上指
+      fxCtx.save();
+      fxCtx.rotate(-Math.PI * 0.15); 
+      drawWithOutline(gunImg, -200, -250, 500, 375);
+      fxCtx.restore();
+      
+      // 2. 画手（顶层）：翻转成右手，压住枪托
+      fxCtx.save(); 
+      fxCtx.scale(-1, 1); 
+      drawWithOutline(handImg, -250, -220, 400, 550); 
+      fxCtx.restore();
+      
+      fxCtx.restore();
+
+      // 枪口火光
+      if(state.muzzleFlash > 0){
+        fxCtx.save(); 
+        fxCtx.translate(baseX + recX, baseY + recY); 
+        fxCtx.rotate(angle + state.gunTilt);
+        fxCtx.rotate(-Math.PI * 0.15); 
+        
+        const fx = -180; const fy = -260; 
+        fxCtx.globalAlpha = state.muzzleFlash;
+        
+        // 美漫十字星枪火
+        fxCtx.fillStyle = "#fff";
+        fxCtx.beginPath();
+        fxCtx.moveTo(fx, fy - 40);
+        fxCtx.lineTo(fx + 20, fy - 10);
+        fxCtx.lineTo(fx + 60, fy);
+        fxCtx.lineTo(fx + 20, fy + 10);
+        fxCtx.lineTo(fx, fy + 40);
+        fxCtx.lineTo(fx - 20, fy + 10);
+        fxCtx.lineTo(fx - 60, fy);
+        fxCtx.lineTo(fx - 20, fy - 10);
+        fxCtx.closePath();
+        fxCtx.fill();
+        
+        fxCtx.strokeStyle = "#000";
+        fxCtx.lineWidth = 4;
+        fxCtx.stroke();
+
+        fxCtx.globalAlpha = 1;
+        fxCtx.restore();
+      }
+    }
+
+    // 准星
+    fxCtx.save();
+    fxCtx.translate(state.mouseX, state.mouseY - state.verticalRecoil);
+    fxCtx.strokeStyle = "#000"; fxCtx.lineWidth = 6;
+    fxCtx.beginPath(); fxCtx.arc(0, 0, 14, 0, Math.PI * 2); fxCtx.stroke();
+    fxCtx.strokeStyle = "#ff0000"; fxCtx.lineWidth = 2;
+    fxCtx.beginPath(); fxCtx.arc(0, 0, 14, 0, Math.PI * 2); fxCtx.stroke();
+    fxCtx.restore();
   }
 
   requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
+})();
 </script>
 </body>
 </html>
