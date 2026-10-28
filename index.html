@@ -144,19 +144,19 @@ if(gunImg.complete) {
   
   // 4. 缩放大小（0.7 比较合适）
   fxCtx.scale(0.7, 0.7);
-  
-  // 5. 【关键】修正枪的图片朝向
-  fxCtx.rotate(-Math.PI * 0); 
-  
-  // 画出枪（注意这里的偏移量 -180, -200 决定了枪的中心点在哪）
-  fxCtx.drawImage(gunImg, -180, -200, 500, 375);
-  
-  // 6. 开火枪口火焰
-  if(state.flash > 0) {
-    fxCtx.globalAlpha = state.flash; fxCtx.fillStyle = "#fff";
-    fxCtx.beginPath(); fxCtx.arc(-180, -260, 40, 0, Math.PI*2); fxCtx.fill();
-    fxCtx.globalAlpha = 1;
-  }
+  // --- 翻转与画枪 ---
+fxCtx.scale(-1, 1); // 【照片翻转】强制水平镜像。如果翻转后反了，就把 -1 改成 1
+fxCtx.rotate(0);    // 【角度修正】如果枪管没对准准星，试着把 0 改成 0.2 或 -0.2
+
+// 画出枪
+fxCtx.drawImage(gunImg, -180, -200, 500, 375);
+
+// 开火枪口火焰（跟随枪一起翻转）
+if(state.flash > 0) {
+  fxCtx.globalAlpha = state.flash; fxCtx.fillStyle = "#fff";
+  fxCtx.beginPath(); fxCtx.arc(-180, -260, 40, 0, Math.PI*2); fxCtx.fill();
+  fxCtx.globalAlpha = 1;
+}
   fxCtx.restore(); // 退出枪的坐标系，回到屏幕绝对坐标
 
   // ==========================================
