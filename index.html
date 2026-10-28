@@ -142,8 +142,8 @@ function shoot() {
   const mY = monster.baseY + bY - monster.knock;
   
   // 怪物大小（占屏幕的70%）
-  monster.w = W * 0.7; 
-  monster.h = H * 0.7;
+  monster.w = monster.h * 0.7; 
+  monster.h = H * 0.9;
 
   if(state.flash > 0) state.flash *= 0.86; 
   if(state.recoil > 0) state.recoil *= 0.75; 
