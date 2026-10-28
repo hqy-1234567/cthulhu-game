@@ -139,9 +139,10 @@ function loop() {
     fxCtx.rotate(ang + state.tilt);
     
     fxCtx.scale(0.7, 0.7); 
-    
+
+    fxCtx.scale(-1,1)
     // 角度微调（如果你觉得枪口没指着准星，把 0 改成 0.2 或 -0.2）
-    fxCtx.rotate(Math.PI);
+    fxCtx.rotate(0);
 
     fxCtx.drawImage(gunImg, -180, -200, 500, 375);
     
