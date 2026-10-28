@@ -143,7 +143,7 @@ function shoot() {
   
   // 怪物大小（占屏幕的70%）
   monster.w = monster.h * 0.7; 
-  monster.h = H * 0.9;
+  monster.h = H * 0.85;
 
   if(state.flash > 0) state.flash *= 0.86; 
   if(state.recoil > 0) state.recoil *= 0.75; 
@@ -167,33 +167,29 @@ function shoot() {
   // 绘制怪物（加入提亮滤镜，防止黑底看不见）
   // ==========================================
   if(monsterLoaded) {
-    bgCtx.save(); 
-    bgCtx.translate(mX, mY); 
-    
-    // 滤镜：提高亮度
-    bgCtx.filter = 'brightness(1.5) contrast(1.2)';
-    bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
-    bgCtx.filter = 'none';
+  bgCtx.save(); 
+  bgCtx.translate(mX, mY); 
+  
+  // 直接按原图大小绘制，不加任何滤镜
+  bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
 
-    // 绘制眼睛标记（红色圆圈）
-    for(let eye of eyes) {
-      if(!eye.alive) continue;
-      const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
-      const er = monster.w*eye.r; 
-      
-      bgCtx.save(); 
-      bgCtx.translate(ex, ey);
-      bgCtx.beginPath(); 
-      bgCtx.arc(0, 0, er, 0, Math.PI*2); 
-      bgCtx.strokeStyle = "#ff0000"; 
-      bgCtx.lineWidth = 3;
-      bgCtx.stroke();
-      bgCtx.restore();
-    }
-    bgCtx.restore(); 
+  // 绘制眼睛标记（红圈）
+  for(let eye of eyes) {
+    if(!eye.alive) continue;
+    const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
+    const er = monster.w*eye.r; 
+    
+    bgCtx.save(); 
+    bgCtx.translate(ex, ey);
+    bgCtx.beginPath(); 
+    bgCtx.arc(0, 0, er, 0, Math.PI*2); 
+    bgCtx.strokeStyle = "#ff0000"; 
+    bgCtx.lineWidth = 3;
+    bgCtx.stroke();
+    bgCtx.restore();
   }
   bgCtx.restore(); 
-
+}
   fxCtx.clearRect(0,0,W,H); 
   fxCtx.save(); 
   fxCtx.translate(shX, shY);
