@@ -130,7 +130,7 @@ function loop() {
   // 画枪（完美融合翻转与转动）
   // ==========================================
   if(gunImg.complete) {
-    const bX = W * 0.8, bY = H * 0.9;
+    const bX = W * 0.75, bY = H * 0.9;
     const ang = Math.atan2(state.my - bY, state.mx - bX);
     
     fxCtx.save();
@@ -142,6 +142,7 @@ function loop() {
     
     // 照片翻转（如果反了就把 -1 改成 1）
     fxCtx.scale(-1, 1); 
+    fxCtx.scale(1, -1); 
     // 角度微调（如果你觉得枪口没指着准星，把 0 改成 0.2 或 -0.2）
     fxCtx.rotate(0);
 
