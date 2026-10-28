@@ -277,8 +277,8 @@ if(gunLoaded) {
     const finalAngle = ang + state.tilt - (Math.PI * 0.15);
     
     // 算出准星绝对坐标
-    const sightX = bX + rX + Math.cos(finalAngle) * barrelLength;
-    const sightY = bY + rY + Math.sin(finalAngle) * barrelLength;
+    sightX = bX + rX + Math.cos(finalAngle) * barrelLength;
+    sightY = bY + rY + Math.sin(finalAngle) * barrelLength;
 
     fxCtx.save(); 
     fxCtx.translate(sightX, sightY); 
@@ -304,7 +304,7 @@ if(gunLoaded) {
 
   // 启动下一帧循环
   requestAnimationFrame(loop);
-  
+
 } // 结束主渲染循环 function loop()
 
 // 启动游戏
