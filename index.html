@@ -101,7 +101,6 @@ function loop() {
     bgCtx.save(); bgCtx.translate(mX, mY);
     bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
     
-    // 眼睛红圈与血管
     for(let eye of eyes) {
       if(!eye.alive) continue;
       const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
@@ -118,7 +117,6 @@ function loop() {
   fxCtx.clearRect(0,0,W,H);
   fxCtx.save(); fxCtx.translate(shX, shY);
   
-  // 血液
   for(let i=particles.length-1; i>=0; i--) {
     let p = particles[i];
     p.x += p.vx; p.y += p.vy; p.vy += 0.8; p.life -= 0.02;
@@ -128,52 +126,40 @@ function loop() {
   }
   fxCtx.globalAlpha = 1;
 
-  // 枪（物理级修正版）
-if(gunImg.complete) {
-  // 1. 设定枪的固定位置（右下角）
-  const bX = W * 0.8, bY = H * 0.95;
-  
-  // 2. 计算枪指向鼠标的角度
-  const ang = Math.atan2(state.my - bY, state.mx - bX);
-  
-  fxCtx.save();
-  // 3. 移动并旋转枪的坐标系
-  fxCtx.translate(bX, bY);
-  fxCtx.translate(Math.cos(ang)*state.recoil, Math.sin(ang)*state.recoil);
-  fxCtx.rotate(ang + state.tilt);
-  
-  // 4. 缩放大小（0.7 比较合适）
-  fxCtx.scale(0.7, 0.7);
-  // --- 翻转与画枪 ---
-fxCtx.scale(-1, 1); // 【照片翻转】强制水平镜像。如果翻转后反了，就把 -1 改成 1
-fxCtx.rotate(0);    // 【角度修正】如果枪管没对准准星，试着把 0 改成 0.2 或 -0.2
-
-// 画出枪
-fxCtx.drawImage(gunImg, -180, -200, 500, 375);
-
-// 开火枪口火焰（跟随枪一起翻转）
-if(state.flash > 0) {
-  fxCtx.globalAlpha = state.flash; fxCtx.fillStyle = "#fff";
-  fxCtx.beginPath(); fxCtx.arc(-180, -260, 40, 0, Math.PI*2); fxCtx.fill();
-  fxCtx.globalAlpha = 1;
-}
-  fxCtx.restore(); // 退出枪的坐标系，回到屏幕绝对坐标
-
   // ==========================================
-  // 7. 画准星（直接画在鼠标的绝对位置）
+  // 画枪（完美融合翻转与转动）
   // ==========================================
-  fxCtx.beginPath(); 
-  fxCtx.arc(state.mx, state.my, 10, 0, Math.PI*2);
-  fxCtx.strokeStyle = "#ff0000"; 
-  fxCtx.lineWidth = 2; 
-  fxCtx.stroke();
-  
-  fxCtx.beginPath(); 
-  fxCtx.arc(state.mx, state.my, 2, 0, Math.PI*2);
-  fxCtx.fillStyle = "#ff0000"; 
-  fxCtx.fill();
-}
-  
+  if(gunImg.complete) {
+    const bX = W * 0.8, bY = H * 0.9;
+    const ang = Math.atan2(state.my - bY, state.mx - bX);
+    
+    fxCtx.save();
+    fxCtx.translate(bX, bY); 
+    fxCtx.translate(Math.cos(ang)*state.recoil, Math.sin(ang)*state.recoil);
+    fxCtx.rotate(ang + state.tilt);
+    
+    fxCtx.scale(0.7, 0.7); 
+    
+    // 照片翻转（如果反了就把 -1 改成 1）
+    fxCtx.scale(-1, 1); 
+    // 角度微调（如果你觉得枪口没指着准星，把 0 改成 0.2 或 -0.2）
+    fxCtx.rotate(0);
+
+    fxCtx.drawImage(gunImg, -180, -200, 500, 375);
+    
+    if(state.flash > 0) {
+      fxCtx.globalAlpha = state.flash; fxCtx.fillStyle = "#fff";
+      fxCtx.beginPath(); fxCtx.arc(-180, -260, 40, 0, Math.PI*2); fxCtx.fill();
+      fxCtx.globalAlpha = 1;
+    }
+    fxCtx.restore();
+
+    // 准星
+    fxCtx.beginPath(); fxCtx.arc(state.mx, state.my, 10, 0, Math.PI*2);
+    fxCtx.strokeStyle = "#f00"; fxCtx.lineWidth = 2; fxCtx.stroke();
+    fxCtx.beginPath(); fxCtx.arc(state.mx, state.my, 2, 0, Math.PI*2);
+    fxCtx.fillStyle = "#f00"; fxCtx.fill();
+  }
 
   fxCtx.restore();
   requestAnimationFrame(loop);
