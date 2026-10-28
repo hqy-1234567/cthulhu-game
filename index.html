@@ -195,28 +195,21 @@ function loop() {
   bgCtx.fillRect(0,0,W,H);
   
   if(monsterLoaded) {
-    bgCtx.save(); 
-    bgCtx.translate(mX, mY); // 基础位置
-    
-    // 【绝招】水平切割撕裂效果：将图片分成多片，每片错位绘制
-    const slices = 12 + Math.floor(monster.shake * 0.3); // 震颤越大，切得越碎
-    const sliceHeight = monster.h / slices;
-    for(let i=0; i<slices; i++) {
-        // 每一片的随机偏移
-        const pieceOffset = (Math.random()-0.5) * monster.shake * 1.5;
-        // 边缘拉伸形变：越靠近边缘拉伸越明显
-        const stretch = (Math.random()-0.5) * monster.shake * 0.05;
-        
-        bgCtx.save();
-        // 绘制这一片（带形变）
-        bgCtx.drawImage(
-          monsterImg, 
-          0, i * (monsterImg.height / slices), monsterImg.width, monsterImg.height / slices, // 原图切割
-          -monster.w/2 + pieceOffset - stretch, -monster.h/2 + i*sliceHeight, // 目标X/Y（加入撕裂偏移和拉伸）
-          monster.w + stretch*2, sliceHeight + 2 // 目标宽高（+2防止片与片之间有缝隙）
-        );
-        bgCtx.restore();
-    }
+  bgCtx.save(); 
+  bgCtx.translate(mX, mY); // 基础位置
+  
+  // 直接居中绘制完整的怪物
+  bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
+
+  // 叠加肉体高频噪点抽搐
+  if(monster.shake > 5) {
+      bgCtx.globalAlpha = monster.shake / 100;
+      bgCtx.globalCompositeOperation = 'overlay';
+      bgCtx.fillStyle = `rgba(${Math.random()*255}, 0, 0, 0.5)`;
+      bgCtx.fillRect(-monster.w/2, -monster.h/2, monster.w, monster.h);
+      bgCtx.globalCompositeOperation = 'source-over';
+      bgCtx.globalAlpha = 1;
+  }
 
     // 叠加肉体高频噪点抽搐
     if(monster.shake > 5) {
