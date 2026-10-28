@@ -218,12 +218,12 @@ function loop() {
     if(s.y > H || s.x > W) shells.splice(i, 1);
   }
   
-  // 画枪（靠近怪物一点点，准星完全独立）
+  // 画枪（准星绑定在枪管延长线上）
 if(gunLoaded) {
-  // 【位置调整】把 bX 和 bY 的数值改小，让枪往左上方移动
-  const bX = W * 0.65; // 原本是 0.75，改小让枪往左（靠近怪物）靠
-  const bY = H * 0.75; // 原本是 0.88，改小让枪往上提
+  const bX = W * 0.65; 
+  const bY = H * 0.75; 
   
+  // 计算鼠标的角度
   const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
   const rX = Math.cos(ang) * state.recoil;
   const rY = Math.sin(ang) * state.recoil;
@@ -231,22 +231,19 @@ if(gunLoaded) {
   fxCtx.save(); 
   fxCtx.translate(bX + rX, bY + rY); 
   fxCtx.rotate(ang + state.tilt);
-  
-  // 大小适中
   fxCtx.scale(0.8, 0.8);
 
+  // 1. 画枪
   fxCtx.save(); 
   fxCtx.rotate(-Math.PI * 0.15); 
-  fxCtx.scale(1, 1);            
-  // 微调 drawImage 把枪的握把对齐到旋转中心
-  fxCtx.drawImage(gunImg, -100, -300, 500, 375); 
+  // 枪已经翻正了，不需要 scale(-1,1) 了
+  fxCtx.drawImage(gunImg, -180, -200, 500, 375); 
   fxCtx.restore();
 
-  // 开火火焰
+  // 2. 开火火焰
   if(state.flash > 0) {
     fxCtx.save(); 
     fxCtx.rotate(-Math.PI * 0.15); 
-    fxCtx.scale(-1, 1);          
     const fx = -160, fy = -210;  
     fxCtx.globalAlpha = state.flash; 
     fxCtx.fillStyle = "#fff"; 
@@ -258,31 +255,34 @@ if(gunLoaded) {
     fxCtx.globalAlpha = 1; 
     fxCtx.restore();
   }
+
+  // ==========================================
+  // 【核心修改】把准星画在枪管的最前端（枪口的延长线）
+  // ==========================================
+  fxCtx.save();
+  // 这里的 x, y 坐标就是枪口的位置（沿着枪身方向往外延伸）
+  // 你可以微调 200 这个数字，数字越大，准星离枪口越远
+  fxCtx.translate(200, 0); 
+  
+  // 黑色描边
+  fxCtx.strokeStyle="rgba(0,0,0,0.9)"; 
+  fxCtx.lineWidth=4; 
+  fxCtx.beginPath(); fxCtx.arc(0,0,12,0,Math.PI*2); fxCtx.stroke();
+  
+  // 红色内圈
+  fxCtx.strokeStyle="#ff0000"; 
+  fxCtx.lineWidth=2; 
+  fxCtx.beginPath(); fxCtx.arc(0,0,12,0,Math.PI*2); fxCtx.stroke();
+  
+  // 红色中心点
+  fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#ff0000"; fxCtx.fill();
+  fxCtx.restore();
+
   fxCtx.restore(); 
 }
 
-// ==========================================
-// 最后的准星（永远在最上层，且不跟枪绑定）
-// ==========================================
-fxCtx.restore(); // 退出震动层
-
-fxCtx.save(); 
-fxCtx.translate(state.mouseX, state.mouseY); 
-
-// 准星外层：黑色描边（防止跟底色或枪混在一起）
-fxCtx.strokeStyle="rgba(0,0,0,0.9)"; 
-fxCtx.lineWidth=5; 
-fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
-
-// 准星内层：亮红色
-fxCtx.strokeStyle="#ff0000"; 
-fxCtx.lineWidth=2; 
-fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
-
-// 中心红点
-fxCtx.beginPath(); fxCtx.arc(0,0,3,0,Math.PI*2); fxCtx.fillStyle="#ff0000"; fxCtx.fill();
-
-fxCtx.restore();
+// 退出震动层
+fxCtx.restore(); 
   
   requestAnimationFrame(loop);
 }
