@@ -218,27 +218,35 @@ function loop() {
     if(s.y > H || s.x > W) shells.splice(i, 1);
   }
   
-  // 画枪（往右下角微调，并稍微缩小）
+  // 画枪（调整旋转轴心到绿色区域）
 if(gunLoaded) {
-  const bX = W * 0.85; // 从 0.8 改到 0.85，让枪更靠右
-  const bY = H * 1.05; 
+  // 【核心参数】修改这里调整绿色区域的位置
+  const bX = W * 0.75; // 横向位置（0.75 代表屏幕宽度的 75% 处）
+  const bY = H * 0.88; // 纵向位置（0.88 代表屏幕高度的 88% 处，也就是偏下的位置）
+  
   const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
   const rX = Math.cos(ang) * state.recoil;
   const rY = Math.sin(ang) * state.recoil;
 
   fxCtx.save(); 
+  // 1. 把坐标轴移动到绿色位置（旋转中心）
   fxCtx.translate(bX + rX, bY + rY); 
   fxCtx.rotate(ang + state.tilt);
   
-  fxCtx.scale(0.7, 0.7); // 从 0.8 改到 0.7，让枪小一点
+  // 2. 调整枪的大小
+  fxCtx.scale(0.8, 0.8);
 
   fxCtx.save(); 
   fxCtx.rotate(-Math.PI * 0.15); 
   fxCtx.scale(-1, 1);            
+  
+  // 3. 调整枪的偏移。
+  // drawImage 的坐标(-200, -250)意味着：把枪的中心对准绿色区域。
+  // 如果枪头偏离了中心，调整这两个数字（比如 -150, -200）可以把枪整体往右下角推
   fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
   fxCtx.restore();
 
-  // 开火火焰 (保持原样)
+  // 开火火焰（跟着枪管走）
   if(state.flash > 0) {
     fxCtx.save(); 
     fxCtx.rotate(-Math.PI * 0.15); 
