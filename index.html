@@ -157,8 +157,8 @@ function loop() {
   const bY = Math.sin(monster.breath)*15;
   const mX = monster.baseX;
   const mY = monster.baseY + bY - monster.knock;
-  monster.w = Math.min(W*0.92, H*0.72); 
-  monster.h = monster.w*1.4;
+  monster.w = W*0.5; 
+  monster.h = H*0.5;
 
   if(state.flash > 0) state.flash *= 0.86; 
   if(state.recoil > 0) state.recoil *= 0.75; 
@@ -194,64 +194,46 @@ function loop() {
   bgCtx.fillStyle='#050505'; 
   bgCtx.fillRect(0,0,W,H);
   
-  if(monsterLoaded) {
+if(monsterLoaded) {
   bgCtx.save(); 
-  bgCtx.translate(mX, mY); // 基础位置
+  // 移动到怪物的位置
+  bgCtx.translate(mX, mY); 
   
-  // 直接居中绘制完整的怪物
+  // 【直接画怪物，强制居中显示】
   bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
 
-  // 叠加肉体高频噪点抽搐
-  if(monster.shake > 5) {
-      bgCtx.globalAlpha = monster.shake / 100;
-      bgCtx.globalCompositeOperation = 'overlay';
-      bgCtx.fillStyle = `rgba(${Math.random()*255}, 0, 0, 0.5)`;
-      bgCtx.fillRect(-monster.w/2, -monster.h/2, monster.w, monster.h);
-      bgCtx.globalCompositeOperation = 'source-over';
-      bgCtx.globalAlpha = 1;
+  // 画眼睛（保留眼睛的绘制）
+  for(let eye of eyes) {
+    if(!eye.alive) continue;
+    const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
+    const danger = 1 - (eye.hp / eye.maxHp);
+    const er = monster.w*eye.r*(1 + danger*0.8); 
+    const sw = monsterImg.width*(eye.r*2.5), sh = monsterImg.height*(eye.r*2.5);
+    const sx = monsterImg.width*eye.x - sw/2, sy = monsterImg.height*eye.y - sh/2;
+    
+    bgCtx.save(); 
+    bgCtx.translate(ex + eye.lookX*(monster.w*0.05), ey + eye.lookY*(monster.w*0.05));
+    
+    bgCtx.beginPath(); 
+    const mg = bgCtx.createRadialGradient(0,0,er*0.5,0,0,er*1.2);
+    mg.addColorStop(0,'rgba(0,0,0,1)'); 
+    mg.addColorStop(0.8,'rgba(0,0,0,0.9)'); 
+    mg.addColorStop(1,'rgba(0,0,0,0)');
+    bgCtx.fillStyle=mg; 
+    bgCtx.arc(0,0,er*1.2,0,Math.PI*2); 
+    bgCtx.fill();
+    
+    bgCtx.globalCompositeOperation = 'source-in'; 
+    bgCtx.drawImage(monsterImg, sx, sy, sw, sh, -er*1.2, -er*1.2, er*2.4, er*2.4);
+    
+    if (danger > 0.1) { 
+      bgCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.6})`; 
+      bgCtx.fillRect(-er*1.2, -er*1.2, er*2.4, er*2.4); 
+    }
+    bgCtx.restore();
   }
-
-    // 叠加肉体高频噪点抽搐
-    if(monster.shake > 5) {
-        bgCtx.globalAlpha = monster.shake / 100;
-        bgCtx.globalCompositeOperation = 'overlay';
-        bgCtx.fillStyle = `rgba(${Math.random()*255}, 0, 0, 0.5)`;
-        bgCtx.fillRect(-monster.w/2, -monster.h/2, monster.w, monster.h);
-        bgCtx.globalCompositeOperation = 'source-over';
-        bgCtx.globalAlpha = 1;
-    }
-
-    // 绘制眼睛（羽化融合）
-    for(let eye of eyes) {
-      if(!eye.alive) continue;
-      const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
-      const danger = 1 - (eye.hp / eye.maxHp);
-      const er = monster.w*eye.r*(1 + danger*0.8); 
-      const sw = monsterImg.width*(eye.r*2.5), sh = monsterImg.height*(eye.r*2.5);
-      const sx = monsterImg.width*eye.x - sw/2, sy = monsterImg.height*eye.y - sh/2;
-      
-      bgCtx.save(); 
-      bgCtx.translate(ex + eye.lookX*(monster.w*0.05), ey + eye.lookY*(monster.w*0.05));
-      
-      // 眼睛的羽化遮罩
-      bgCtx.beginPath(); 
-      const mg = bgCtx.createRadialGradient(0,0,er*0.5,0,0,er*1.2);
-      mg.addColorStop(0,'rgba(0,0,0,1)'); 
-      mg.addColorStop(0.8,'rgba(0,0,0,0.9)'); 
-      mg.addColorStop(1,'rgba(0,0,0,0)');
-      bgCtx.fillStyle=mg; 
-      bgCtx.arc(0,0,er*1.2,0,Math.PI*2); 
-      bgCtx.fill();
-      
-      bgCtx.globalCompositeOperation = 'source-in'; 
-      bgCtx.drawImage(monsterImg, sx, sy, sw, sh, -er*1.2, -er*1.2, er*2.4, er*2.4);
-      
-      if (danger > 0.1) { 
-        bgCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.6})`; 
-        bgCtx.fillRect(-er*1.2, -er*1.2, er*2.4, er*2.4); 
-      }
-      bgCtx.restore();
-    }
+  bgCtx.restore(); 
+}
 
     // 黑色血管蠕动
     const veinIntensity = Math.min(1, (monster.swell - 1.0) * 5 + monster.hurt * 0.8);
