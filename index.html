@@ -128,35 +128,52 @@ function loop() {
   }
   fxCtx.globalAlpha = 1;
 
-  // 枪（完美轴线，无黑屏）
-  if(gunImg.complete) {
-    const bX = W * 0.8, bY = H * 0.85;
-    const ang = Math.atan2(state.my - bY, state.mx - bX);
-    
-    fxCtx.save();
-    fxCtx.translate(bX, bY); fxCtx.rotate(ang + state.tilt);
-    fxCtx.translate(Math.cos(ang)*state.recoil, Math.sin(ang)*state.recoil);
-    fxCtx.scale(0.5, 0.5);
-    fxCtx.rotate(Math.PI * 0.15); // 修正角度
-    
-    fxCtx.drawImage(gunImg, -180, -200, 500, 375);
-    
-    if(state.flash > 0) {
-      fxCtx.globalAlpha = state.flash; fxCtx.fillStyle = "#fff";
-      fxCtx.beginPath(); fxCtx.arc(-180, -260, 40, 0, Math.PI*2); fxCtx.fill();
-      fxCtx.globalAlpha = 1;
-    }
-    fxCtx.restore();
-
-    // 准星锁定枪管延长线
-    const sightX = bX + Math.cos(ang + state.tilt + Math.PI * 0.15) * 150;
-    const sightY = bY + Math.sin(ang + state.tilt + Math.PI * 0.15) * 150;
-    
-    fxCtx.beginPath(); fxCtx.arc(sightX, sightY, 10, 0, Math.PI*2);
-    fxCtx.strokeStyle = "#f00"; fxCtx.lineWidth = 2; fxCtx.stroke();
-    fxCtx.beginPath(); fxCtx.arc(sightX, sightY, 2, 0, Math.PI*2);
-    fxCtx.fillStyle = "#f00"; fxCtx.fill();
+  // 枪（物理级修正版）
+if(gunImg.complete) {
+  // 1. 设定枪的固定位置（右下角）
+  const bX = W * 0.85, bY = H * 0.95;
+  
+  // 2. 计算枪指向鼠标的角度
+  const ang = Math.atan2(state.my - bY, state.mx - bX);
+  
+  fxCtx.save();
+  // 3. 移动并旋转枪的坐标系
+  fxCtx.translate(bX, bY);
+  fxCtx.translate(Math.cos(ang)*state.recoil, Math.sin(ang)*state.recoil);
+  fxCtx.rotate(ang + state.tilt);
+  
+  // 4. 缩放大小（0.7 比较合适）
+  fxCtx.scale(0.7, 0.7);
+  
+  // 5. 【关键】修正枪的图片朝向
+  fxCtx.rotate(-Math.PI * 0.15); 
+  
+  // 画出枪（注意这里的偏移量 -180, -200 决定了枪的中心点在哪）
+  fxCtx.drawImage(gunImg, -180, -200, 500, 375);
+  
+  // 6. 开火枪口火焰
+  if(state.flash > 0) {
+    fxCtx.globalAlpha = state.flash; fxCtx.fillStyle = "#fff";
+    fxCtx.beginPath(); fxCtx.arc(-180, -260, 40, 0, Math.PI*2); fxCtx.fill();
+    fxCtx.globalAlpha = 1;
   }
+  fxCtx.restore(); // 退出枪的坐标系，回到屏幕绝对坐标
+
+  // ==========================================
+  // 7. 画准星（直接画在鼠标的绝对位置）
+  // ==========================================
+  fxCtx.beginPath(); 
+  fxCtx.arc(state.mx, state.my, 10, 0, Math.PI*2);
+  fxCtx.strokeStyle = "#ff0000"; 
+  fxCtx.lineWidth = 2; 
+  fxCtx.stroke();
+  
+  fxCtx.beginPath(); 
+  fxCtx.arc(state.mx, state.my, 2, 0, Math.PI*2);
+  fxCtx.fillStyle = "#ff0000"; 
+  fxCtx.fill();
+}
+  
 
   fxCtx.restore();
   requestAnimationFrame(loop);
