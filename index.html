@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover" />
-<title>克苏鲁降临 · 极致震撼版</title>
+<title>克苏鲁降临 · 极致震颤版</title>
 <style>
   :root{--bg:rgba(0,0,0,.6);--bd:rgba(255,200,0,.8);}
   body{margin:0;height:100vh;overflow:hidden;background:#000;cursor:none;}
@@ -27,9 +27,8 @@ const scoreEl = document.getElementById("score"), ammoEl = document.getElementBy
 let W, H, DPR = Math.min(window.devicePixelRatio || 1, 2);
 let time = 0;
 
-// 请确保这三个文件在你的 GitHub 仓库中
+// 图片加载
 const monsterImg = new Image(); monsterImg.src = "monster.jpg"; let monsterLoaded = false; monsterImg.onload = () => monsterLoaded = true;
-const handImg = new Image(); handImg.src = "shou.png"; let handLoaded = false; handImg.onload = () => handLoaded = true;
 const gunImg = new Image(); gunImg.src = "qiang.png"; let gunLoaded = false; gunImg.onload = () => gunLoaded = true;
 
 const state = { 
@@ -38,24 +37,23 @@ const state = {
   score: 0, recoil: 0, flash: 0, shake: 0, tilt: 0, gunY: 0 
 };
 
-// 加入了 warpX, warpY 用于内部形变
 const monster = { 
   baseX: 0, baseY: 0, w: 0, h: 0, 
-  hurt: 0, shake: 0, knock: 0, breath: 0, swell: 1, warpX: 0, warpY: 0
+  hurt: 0, shake: 0, knock: 0, breath: 0, swell: 1 
 };
 
-// 10个眼睛坐标，完美对应你上传的图片
+// 10个眼睛
 const eyes = [
-  {x:0.50, y:0.45, r:0.20, isBoss:true, hp:20, maxHp:20, alive:true, lookX:0, lookY:0}, // 中心大眼
-  {x:0.48, y:0.15, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 额头
-  {x:0.13, y:0.46, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 左中
-  {x:0.18, y:0.52, r:0.028, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 左下
-  {x:0.24, y:0.78, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 左底
-  {x:0.85, y:0.45, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 右中
-  {x:0.82, y:0.51, r:0.032, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 右下
-  {x:0.74, y:0.80, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}, // 右底
-  {x:0.50, y:0.70, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},  // 主眼下
-  {x:0.50, y:0.88, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}  // 最底
+  {x:0.50, y:0.45, r:0.20, isBoss:true, hp:20, maxHp:20, alive:true, lookX:0, lookY:0},
+  {x:0.48, y:0.15, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.13, y:0.46, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.18, y:0.52, r:0.028, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.24, y:0.78, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.85, y:0.45, r:0.035, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.82, y:0.51, r:0.032, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.74, y:0.80, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.50, y:0.70, r:0.04, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0},
+  {x:0.50, y:0.88, r:0.038, isBoss:false, hp:8, maxHp:8, alive:true, lookX:0, lookY:0}
 ];
 
 let audioCtx;
@@ -78,14 +76,14 @@ function resize() {
 }
 
 function resetGame() {
-  monster.baseX = W/2; monster.baseY = H*0.35; monster.knock = 0; monster.swell = 1; monster.warpX = 0; monster.warpY = 0;
+  monster.baseX = W/2; monster.baseY = H*0.5; monster.knock = 0; monster.swell = 1;
   eyes.forEach(e => { e.alive = true; e.hp = e.maxHp; });
   state.ammo = state.maxAmmo; updateAmmo();
   state.isReloading = false; state.reloadTimer = 0; state.gunY = 0;
   particles = []; shells = [];
 }
 
-function updateAmmo() { ammoEl.textContent = "??".repeat(state.ammo) + "?".repeat(state.maxAmmo - state.ammo); }
+function updateAmmo() { ammoEl.textContent = "🔴".repeat(state.ammo) + "⚫".repeat(state.maxAmmo - state.ammo); }
 
 addEventListener("resize", resize); resize();
 addEventListener("mousemove", e => { state.mouseX = e.clientX; state.mouseY = e.clientY; });
@@ -105,8 +103,8 @@ function shoot() {
   const bY = Math.sin(monster.breath)*15;
   const mX = monster.baseX;
   const mY = monster.baseY + bY - monster.knock;
-  const mw = Math.min(W*0.92, H*0.72);
-  const mh = mw*1.4;
+  const mw = monster.w;
+  const mh = monster.h;
 
   state.ammo--; updateAmmo();
   state.flash = 1; state.recoil = 60; state.tilt = (Math.random()-0.5)*0.6; state.shake = 30;
@@ -120,23 +118,21 @@ function shoot() {
     if(Math.hypot(state.mouseX - ex, state.mouseY - ey) < mw * eye.r + 35) {
       eye.hp--; 
       monster.hurt = eye.isBoss ? 2 : 0.8; 
-      // 【核心】极强震颤值，这会让切片扭曲变得非常明显
       monster.shake = eye.isBoss ? 80 : 50; 
       monster.knock = eye.isBoss ? 60 : 25;
       
       redFlashEl.style.background = eye.isBoss ? "rgba(255,0,0,0.6)" : "rgba(255,0,0,0.25)";
       setTimeout(() => redFlashEl.style.background = "rgba(255,0,0,0)", 120);
       
-      // 喷血量加大
-      for(let i=0; i<(eye.isBoss?50:25); i++) {
-        const a = Math.random()*Math.PI*2, sp = 5 + Math.random()*18;
-        particles.push({ x: ex, y: ey, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp-5, r: 3+Math.random()*12, life: 1, decay: 0.02, col: ["#a30000", "#5c0000", "#1f0000", "#ff2222"][Math.floor(Math.random()*4)] });
+      for(let i=0; i<(eye.isBoss?45:15); i++) {
+        const a = Math.random()*Math.PI*2, sp = 4 + Math.random()*16;
+        particles.push({ x: ex, y: ey, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp-5, r: 4+Math.random()*12, life: 1, decay: 0.02, col: ["#3d0000", "#5c0000", "#1a0000", "#800000"][Math.floor(Math.random()*4)] });
       }
       
       if(eye.hp <= 0) { 
         eye.alive = false; 
         state.score++; scoreEl.textContent = state.score; 
-        monster.shake += 40; monster.knock += 30;
+        monster.shake += 50; monster.knock += 40; 
       }
       return;
     }
@@ -145,18 +141,19 @@ function shoot() {
   if(eyes.every(e => !e.alive)) resetGame();
   if(state.ammo <= 0) state.isReloading = true;
 }
+
 function loop() {
   time += 0.04; 
   
-  // 衰减逻辑
   if(monster.hurt > 0) monster.hurt *= 0.85; 
-  if(monster.shake > 0) monster.shake *= 0.85; // 震颤衰减稍微放缓，让抖动感更持久
+  if(monster.shake > 0) monster.shake *= 0.85; 
   if(monster.knock > 0) monster.knock *= 0.85;
   
   monster.breath += 0.02; 
   const bY = Math.sin(monster.breath)*15;
   const mX = monster.baseX;
   const mY = monster.baseY + bY - monster.knock;
+  
   monster.w = 600; 
   monster.h = 800;
 
@@ -175,7 +172,6 @@ function loop() {
     }
   }
 
-  // 眼睛追踪
   for(let eye of eyes) {
     if(!eye.alive) continue;
     const ex = mX + monster.w * (eye.x - 0.5), ey = mY + monster.h * (eye.y - 0.5);
@@ -183,9 +179,6 @@ function loop() {
     eye.lookY += ((state.mouseY - ey)/200 - eye.lookY)*0.1;
   }
 
-  // ==========================================
-  // 核心：画面内部图像撕裂与扭曲（非整体坐标偏移）
-  // ==========================================
   const shX = (Math.random()-0.5)*state.shake, shY = (Math.random()-0.5)*state.shake;
   
   bgCtx.clearRect(0,0,W,H); 
@@ -194,81 +187,50 @@ function loop() {
   bgCtx.fillStyle='#050505'; 
   bgCtx.fillRect(0,0,W,H);
   
-if(monsterLoaded) {
-  bgCtx.save(); 
-  // 移动到屏幕中心
-  bgCtx.translate(mX, mY); 
-
-  // 直接画怪物本体，不搞任何切片和特效
-  bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
-
-  // 把10个眼睛画出来（方便你瞄准）
-  for(let eye of eyes) {
-    if(!eye.alive) continue;
-    const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
-    const er = monster.w*eye.r; 
-    
+  if(monsterLoaded) {
     bgCtx.save(); 
-    bgCtx.translate(ex, ey);
+    bgCtx.translate(mX, mY); 
     
-    // 直接用亮红色的圆圈把眼睛标出来
-    bgCtx.beginPath(); 
-    bgCtx.arc(0, 0, er, 0, Math.PI*2); 
-    bgCtx.strokeStyle = "#ff0000"; 
-    bgCtx.lineWidth = 4;
-    bgCtx.stroke();
-    
-    bgCtx.restore();
-  }
-  bgCtx.restore(); 
-}
-    // 黑色血管蠕动
-    const veinIntensity = Math.min(1, (monster.swell - 1.0) * 5 + monster.hurt * 0.8);
-    if (veinIntensity > 0.05) {
-      bgCtx.globalCompositeOperation = "source-over"; 
-      const eyeX = 0, eyeY = -monster.h * 0.05; 
-      for(let i = 0; i < 40; i++) { // 血管数量增加
-        const a = (i / 40) * Math.PI * 2 + Math.sin(time * 2 + i) * 0.8; // 蠕动速度更快
-        const len = monster.w * (0.2 + Math.random() * 0.5);
-        bgCtx.beginPath();
-        bgCtx.moveTo(eyeX + Math.cos(a) * monster.w * 0.15, eyeY + Math.sin(a) * monster.w * 0.15);
-        bgCtx.quadraticCurveTo(
-          eyeX + Math.cos(a + 0.5) * len * 0.5, 
-          eyeY + Math.sin(a + 0.5) * len * 0.5, 
-          eyeX + Math.cos(a) * len, 
-          eyeY + Math.sin(a) * len
-        );
-        bgCtx.strokeStyle = `rgba(10, 0, 0, ${veinIntensity * 0.9})`; // 极暗的黑色血管
-        bgCtx.lineWidth = (2 + veinIntensity * 4) * (1 + Math.sin(i + time)*0.5); 
-        bgCtx.lineCap = "round"; 
-        bgCtx.stroke();
-      }
+    // 直接绘制完整怪物
+    bgCtx.drawImage(monsterImg, -monster.w/2, -monster.h/2, monster.w, monster.h);
+
+    // 绘制眼睛（带红色标记）
+    for(let eye of eyes) {
+      if(!eye.alive) continue;
+      const ex = monster.w*(eye.x-0.5), ey = monster.h*(eye.y-0.5);
+      const danger = 1 - (eye.hp / eye.maxHp);
+      const er = monster.w*eye.r*(1 + danger*0.8); 
+      const sw = monsterImg.width*(eye.r*2.5), sh = monsterImg.height*(eye.r*2.5);
+      const sx = monsterImg.width*eye.x - sw/2, sy = monsterImg.height*eye.y - sh/2;
+      
+      bgCtx.save(); 
+      bgCtx.translate(ex + eye.lookX*(monster.w*0.05), ey + eye.lookY*(monster.w*0.05));
+      
+      bgCtx.beginPath(); 
+      const mg = bgCtx.createRadialGradient(0,0,er*0.5,0,0,er*1.2);
+      mg.addColorStop(0,'rgba(0,0,0,1)'); mg.addColorStop(0.8,'rgba(0,0,0,0.9)'); mg.addColorStop(1,'rgba(0,0,0,0)');
+      bgCtx.fillStyle=mg; bgCtx.arc(0,0,er*1.2,0,Math.PI*2); bgCtx.fill();
+      
+      bgCtx.globalCompositeOperation = 'source-in'; 
+      bgCtx.drawImage(monsterImg, sx, sy, sw, sh, -er*1.2, -er*1.2, er*2.4, er*2.4);
+      
+      if (danger > 0.1) { bgCtx.fillStyle = `rgba(200, 0, 0, ${danger * 0.6})`; bgCtx.fillRect(-er*1.2, -er*1.2, er*2.4, er*2.4); }
+      bgCtx.restore();
     }
     bgCtx.restore(); 
   }
   bgCtx.restore(); 
 
-  // ==========================================
-  // 特效层渲染
-  // ==========================================
   fxCtx.clearRect(0,0,W,H); 
   fxCtx.save(); 
-  fxCtx.translate(shX, shY); // 特效层也跟随屏幕抖动
+  fxCtx.translate(shX, shY);
   
-  // 溅射血浆
   for(const p of particles) { 
     p.x += p.vx; p.y += p.vy; p.vy += 0.6; p.life -= p.decay; 
-    if(p.life > 0) { 
-      fxCtx.globalAlpha = p.life; 
-      fxCtx.beginPath(); 
-      fxCtx.arc(p.x, p.y, p.r, 0, Math.PI*2); 
-      fxCtx.fillStyle = p.col; 
-      fxCtx.fill(); 
-    } 
+    if(p.life > 0) { fxCtx.globalAlpha = p.life; fxCtx.beginPath(); fxCtx.arc(p.x, p.y, p.r, 0, Math.PI*2); fxCtx.fillStyle = p.col; fxCtx.fill(); } 
   }
   particles = particles.filter(p => p.life > 0);
   
-  // 弹壳
   for(const s of shells) {
     s.x += s.vx; s.y += s.vy; s.vy += 0.5; s.rot += s.rotSpd;
     fxCtx.save(); fxCtx.translate(s.x, s.y); fxCtx.rotate(s.rot);
@@ -277,72 +239,45 @@ if(monsterLoaded) {
   }
   shells = shells.filter(s => s.y < H + 50 && s.x > -50 && s.x < W + 50);
   
- // ==========================================
-// 独立枪械渲染代码（包含开火特效）
-// ==========================================
-if(gunLoaded) {
-  // 计算枪的位置（固定在右下角）
-  const bX = W * 0.8;
-  const bY = H * 1.05 + state.gunY; 
-  
-  // 计算鼠标瞄准的角度
-  const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
-  
-  // 后坐力造成的位移
-  const rX = Math.cos(ang) * state.recoil;
-  const rY = Math.sin(ang) * state.recoil;
+  // 独立的枪
+  if(gunLoaded) {
+    const bX = W * 0.8;
+    const bY = H * 1.05 + state.gunY; 
+    const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
+    const rX = Math.cos(ang) * state.recoil;
+    const rY = Math.sin(ang) * state.recoil;
 
-  fxCtx.save();
-  // 移动到右下角并加上后坐力偏移
-  fxCtx.translate(bX + rX, bY + rY);
-  // 旋转枪身指向鼠标
-  fxCtx.rotate(ang + state.tilt);
-  
-  // 适配屏幕大小的缩放
-  const s = Math.max(0.8, Math.min(1.4, W / 600)); 
-  fxCtx.scale(s, s);
+    fxCtx.save(); 
+    fxCtx.translate(bX + rX, bY + rY); 
+    fxCtx.rotate(ang + state.tilt);
+    const s = Math.max(0.8, Math.min(1.4, W / 600)); 
+    fxCtx.scale(s, s);
 
-  // 1. 画出枪的图片
-  fxCtx.save(); 
-  fxCtx.rotate(-Math.PI * 0.15); // 给枪加上基础倾斜角
-  
-  // 注意：如果你的枪原本在图片里是朝左的，scale(-1, 1) 把它翻转到朝右。
-  // 如果它原本就朝右，把 -1 改成 1
-  fxCtx.scale(-1, 1);            
-  
-  // 画枪（大小参数 500, 375，位置 -200, -250）
-  fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
-  fxCtx.restore();
-
-  // 2. 枪口开火火焰特效
-  if(state.flash > 0) {
     fxCtx.save(); 
     fxCtx.rotate(-Math.PI * 0.15); 
-    fxCtx.scale(-1, 1);          // 必须和上面画枪的翻转保持一致
-    
-    const fx = -180, fy = -260;  // 枪口火焰的位置
-    fxCtx.globalAlpha = state.flash; 
-    fxCtx.fillStyle = "#fff"; 
-    fxCtx.beginPath();
-    fxCtx.moveTo(fx, fy - 40); 
-    fxCtx.lineTo(fx + 20, fy - 10); 
-    fxCtx.lineTo(fx + 60, fy); 
-    fxCtx.lineTo(fx + 20, fy + 10); 
-    fxCtx.lineTo(fx, fy + 40); 
-    fxCtx.lineTo(fx - 20, fy + 10); 
-    fxCtx.lineTo(fx - 60, fy); 
-    fxCtx.lineTo(fx - 20, fy - 10); 
-    fxCtx.fill();
-    
-    fxCtx.strokeStyle = "#000"; 
-    fxCtx.lineWidth = 4; 
-    fxCtx.stroke(); 
-    fxCtx.globalAlpha = 1; 
+    fxCtx.scale(-1, 1);            
+    fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
     fxCtx.restore();
+
+    if(state.flash > 0) {
+      fxCtx.save(); 
+      fxCtx.rotate(-Math.PI * 0.15); 
+      fxCtx.scale(-1, 1);          
+      const fx = -180, fy = -260;  
+      fxCtx.globalAlpha = state.flash; 
+      fxCtx.fillStyle = "#fff"; 
+      fxCtx.beginPath();
+      fxCtx.moveTo(fx, fy - 40); fxCtx.lineTo(fx + 20, fy - 10); fxCtx.lineTo(fx + 60, fy); fxCtx.lineTo(fx + 20, fy + 10); 
+      fxCtx.lineTo(fx, fy + 40); fxCtx.lineTo(fx - 20, fy + 10); fxCtx.lineTo(fx - 60, fy); fxCtx.lineTo(fx - 20, fy - 10); 
+      fxCtx.fill();
+      fxCtx.strokeStyle = "#000"; 
+      fxCtx.lineWidth = 4; 
+      fxCtx.stroke(); 
+      fxCtx.globalAlpha = 1; 
+      fxCtx.restore();
+    }
+    fxCtx.restore(); 
   }
-  
-  fxCtx.restore(); // 结束枪的绘制
-}
   
   // 准星
   fxCtx.save(); fxCtx.translate(state.mouseX, state.mouseY); 
@@ -353,7 +288,7 @@ if(gunLoaded) {
   fxCtx.restore(); 
   
   requestAnimationFrame(loop);
-
+}
 requestAnimationFrame(loop);
 </script>
 </body>
