@@ -278,18 +278,18 @@ if(gunLoaded) {
     fxCtx.restore(); 
   }
   
- // 准星（永远在最顶层）
-fxCtx.save(); 
-fxCtx.translate(state.mouseX, state.mouseY); 
-fxCtx.strokeStyle="#f00"; 
-fxCtx.lineWidth=2; 
-fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
-fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#f00"; fxCtx.fill();
-fxCtx.restore();
+  // 准星（最顶层）
+  fxCtx.save(); fxCtx.translate(state.mouseX, state.mouseY); 
+  fxCtx.strokeStyle="#f00"; fxCtx.lineWidth=2; 
+  fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
+  fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#f00"; fxCtx.fill();
+  fxCtx.restore();
+  fxCtx.restore(); 
   
   requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
+} // 这个括号结束 loop 函数
+
+requestAnimationFrame(loop); // 启动游戏
 </script>
 </body>
 </html>
