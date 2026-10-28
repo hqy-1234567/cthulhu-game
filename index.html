@@ -233,86 +233,80 @@ if(gunLoaded) {
   fxCtx.rotate(ang + state.tilt);
   fxCtx.scale(0.8, 0.8);
 
-   // 画枪（精准计算枪管延长线，准星不卡顿）
-if(gunLoaded) {
-  const bX = W * 0.65; 
-  const bY = H * 0.75; 
-  
-  // 1. 计算鼠标角度
-  const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
-  const rX = Math.cos(ang) * state.recoil;
-  const rY = Math.sin(ang) * state.recoil;
+     // ==========================================
+  // 画枪与准星（纯轴线瞄准，不再乱翻转）
+  // ==========================================
+  if(gunLoaded) {
+    // 1. 旋转中心（屏幕右下角）
+    const bX = W * 0.8; 
+    const bY = H * 0.8; 
+    
+    // 算出鼠标相对这个中心的角度
+    const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
+    
+    // 后坐力偏移计算
+    const rX = Math.cos(ang) * state.recoil;
+    const rY = Math.sin(ang) * state.recoil;
 
-  // 2. 画枪
-  fxCtx.save(); 
-  fxCtx.translate(bX + rX, bY + rY); 
-  fxCtx.rotate(ang + state.tilt);
-  fxCtx.scale(0.8, 0.8);
-
-  fxCtx.save(); 
-  fxCtx.rotate(-Math.PI * 0.15); 
-  fxCtx.drawImage(gunImg, -180, -200, 500, 375); 
-  fxCtx.restore();
-
-  // 开火火焰
-  if(state.flash > 0) {
     fxCtx.save(); 
-    fxCtx.rotate(-Math.PI * 0.15); 
-    const fx = -160, fy = -210;  
-    fxCtx.globalAlpha = state.flash; 
-    fxCtx.fillStyle = "#fff"; 
-    fxCtx.beginPath();
-    fxCtx.moveTo(fx, fy - 40); fxCtx.lineTo(fx + 20, fy - 10); fxCtx.lineTo(fx + 60, fy); fxCtx.lineTo(fx + 20, fy + 10); 
-    fxCtx.lineTo(fx, fy + 40); fxCtx.lineTo(fx - 20, fy + 10); fxCtx.lineTo(fx - 60, fy); fxCtx.lineTo(fx - 20, fy - 10); 
-    fxCtx.fill();
-    fxCtx.strokeStyle = "#000"; fxCtx.lineWidth = 4; fxCtx.stroke(); 
-    fxCtx.globalAlpha = 1; 
+    // 移动到中心，并跟随鼠标角度旋转
+    fxCtx.translate(bX + rX, bY + rY); 
+    fxCtx.rotate(ang + state.tilt); 
+    
+    // 缩放大小
+    fxCtx.scale(0.5, 0.5);
+
+    // 2. 绘制枪身
+    fxCtx.save(); 
+    // 【关键】去掉多余的倾斜，让枪管和鼠标指向完全重合。
+    // 如果画出来枪管没有指向鼠标，可以微调这里的 Math.PI * 0.5 或者 0.15
+    fxCtx.rotate(Math.PI * 0.15); 
+    
+    // 把枪画在中心点上
+    fxCtx.drawImage(gunImg, -180, -200, 500, 375); 
+    fxCtx.restore();
+
+    // 3. 开火火焰（跟着枪管方向）
+    if(state.flash > 0) {
+      fxCtx.save(); 
+      fxCtx.rotate(Math.PI * 0.15); // 和枪身角度保持一致
+      const fx = -160, fy = -210;  
+      fxCtx.globalAlpha = state.flash; 
+      fxCtx.fillStyle = "#fff"; 
+      fxCtx.beginPath();
+      fxCtx.moveTo(fx, fy - 40); fxCtx.lineTo(fx + 20, fy - 10); fxCtx.lineTo(fx + 60, fy); fxCtx.lineTo(fx + 20, fy + 10); 
+      fxCtx.lineTo(fx, fy + 40); fxCtx.lineTo(fx - 20, fy + 10); fxCtx.lineTo(fx - 60, fy); fxCtx.lineTo(fx - 20, fy - 10); 
+      fxCtx.fill();
+      fxCtx.strokeStyle = "#000"; fxCtx.lineWidth = 4; fxCtx.stroke(); 
+      fxCtx.globalAlpha = 1; 
+      fxCtx.restore();
+    }
+    fxCtx.restore(); // 退出枪的坐标系
+
+    // 4. 画准星（死死锁在鼠标坐标上）
+    fxCtx.save(); 
+    fxCtx.translate(state.mouseX, state.mouseY); 
+    
+    fxCtx.strokeStyle="rgba(0,0,0,0.9)"; 
+    fxCtx.lineWidth=4; 
+    fxCtx.beginPath(); fxCtx.arc(0,0,12,0,Math.PI*2); fxCtx.stroke();
+    
+    fxCtx.strokeStyle="#ff0000"; 
+    fxCtx.lineWidth=2; 
+    fxCtx.beginPath(); fxCtx.arc(0,0,12,0,Math.PI*2); fxCtx.stroke();
+    
+    fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#ff0000"; fxCtx.fill();
+    
     fxCtx.restore();
   }
-  
-  fxCtx.restore(); // 退出枪的 transform
 
-  // ==========================================
-  // 3. 【核心】计算枪管末端在屏幕上的绝对坐标
-  // ==========================================
-  // 这里的 150 是枪管长度，你可以根据实际视觉调整
-  const barrelLength = 150; 
-  
-  // 因为枪基础角度偏移了 -0.15PI，所以准星的起点要加上这个偏移
-  const finalAngle = ang + state.tilt - (Math.PI * 0.15);
-  
-  // 算出准星应该出现的屏幕绝对坐标
-  const sightX = bX + rX + Math.cos(finalAngle) * barrelLength;
-  const sightY = bY + rY + Math.sin(finalAngle) * barrelLength;
+  // 退出屏幕震动
+  fxCtx.restore(); 
 
-  // 4. 在算出的位置画准星（并在最上层）
-  fxCtx.save(); 
-  fxCtx.translate(sightX, sightY); 
-  
-  // 黑色描边
-  fxCtx.strokeStyle="rgba(0,0,0,0.9)"; 
-  fxCtx.lineWidth=4; 
-  fxCtx.beginPath(); fxCtx.arc(0,0,12,0,Math.PI*2); fxCtx.stroke();
-  
-  // 红色内圈
-  fxCtx.strokeStyle="#ff0000"; 
-  fxCtx.lineWidth=2; 
-  fxCtx.beginPath(); fxCtx.arc(0,0,12,0,Math.PI*2); fxCtx.stroke();
-  
-  // 红色中心点
-  fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#ff0000"; fxCtx.fill();
-  
-  fxCtx.restore();
-}
-
-// 退出震动层
-fxCtx.restore(); 
-  }
-
-  // 启动下一帧循环
+  // 请求下一帧
   requestAnimationFrame(loop);
 
-} // 结束主渲染循环 function loop()
+} // 闭合 loop 函数
 
 // 启动游戏
 loop();
