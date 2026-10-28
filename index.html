@@ -214,25 +214,52 @@ function shoot() {
   }
   shells = shells.filter(s => s.y < H + 50 && s.x > -50 && s.x < W + 50);
   
-  // 独立的枪
-  if(gunLoaded) {
-    const bX = W * 0.8;
-    const bY = H * 1.05 + state.gunY; 
-    const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
-    const rX = Math.cos(ang) * state.recoil;
-    const rY = Math.sin(ang) * state.recoil;
+ // 独立的枪（彻底翻正，且位置在最底部）
+if(gunLoaded) {
+  // 1. 枪的位置：让它更靠右下角，不挡视线
+  const bX = W * 0.8; 
+  const bY = H * 1.1 + state.gunY; // 1.1 会沉到屏幕下方，只露出手枪握把和枪管
+  
+  const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
+  const rX = Math.cos(ang) * state.recoil;
+  const rY = Math.sin(ang) * state.recoil;
 
-    fxCtx.save(); 
-    fxCtx.translate(bX + rX, bY + rY); 
-    fxCtx.rotate(ang + state.tilt);
-    const s = Math.max(0.8, Math.min(1.4, W / 600)); 
-    fxCtx.scale(s, s);
+  fxCtx.save(); 
+  fxCtx.translate(bX + rX, bY + rY); 
+  fxCtx.rotate(ang); // 跟随鼠标瞄准
+  
+  const s = Math.max(0.7, Math.min(1.2, W / 600)); 
+  fxCtx.scale(s, s);
 
+  fxCtx.save(); 
+  // 【核心修复】翻转与角度
+  // 你的原图是枪口朝左、横躺着的。所以我们先把角度转正（-Math.PI/2），再水平翻转
+  fxCtx.rotate(Math.PI * 0.45); 
+  fxCtx.scale(-1, 1); 
+  
+  fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
+  fxCtx.restore();
+
+  // 开火火焰
+  if(state.flash > 0) {
     fxCtx.save(); 
-    fxCtx.rotate(-Math.PI * 0.15); 
-    fxCtx.scale(-1, 1);            
-    fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
+    fxCtx.rotate(Math.PI * 0.45); 
+    fxCtx.scale(-1, 1);          
+    const fx = -180, fy = -260;  
+    fxCtx.globalAlpha = state.flash; 
+    fxCtx.fillStyle = "#fff"; 
+    fxCtx.beginPath();
+    fxCtx.moveTo(fx, fy - 40); fxCtx.lineTo(fx + 20, fy - 10); fxCtx.lineTo(fx + 60, fy); fxCtx.lineTo(fx + 20, fy + 10); 
+    fxCtx.lineTo(fx, fy + 40); fxCtx.lineTo(fx - 20, fy + 10); fxCtx.lineTo(fx - 60, fy); fxCtx.lineTo(fx - 20, fy - 10); 
+    fxCtx.fill();
+    fxCtx.strokeStyle = "#000"; 
+    fxCtx.lineWidth = 4; 
+    fxCtx.stroke(); 
+    fxCtx.globalAlpha = 1; 
     fxCtx.restore();
+  }
+  fxCtx.restore(); 
+}
 
     // 开火火焰
     if(state.flash > 0) {
@@ -255,13 +282,14 @@ function shoot() {
     fxCtx.restore(); 
   }
   
-  // 准星
-  fxCtx.save(); fxCtx.translate(state.mouseX, state.mouseY); 
-  fxCtx.strokeStyle="#f00"; fxCtx.lineWidth=2; 
-  fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
-  fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#f00"; fxCtx.fill();
-  fxCtx.restore();
-  fxCtx.restore(); 
+ // 准星（永远在最顶层）
+fxCtx.save(); 
+fxCtx.translate(state.mouseX, state.mouseY); 
+fxCtx.strokeStyle="#f00"; 
+fxCtx.lineWidth=2; 
+fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
+fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#f00"; fxCtx.fill();
+fxCtx.restore();
   
   requestAnimationFrame(loop);
 }
