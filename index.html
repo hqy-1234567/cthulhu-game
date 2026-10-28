@@ -131,7 +131,7 @@ function loop() {
   // ==========================================
   if(gunImg.complete) {
     const bX = W * 0.75, bY = H * 0.9;
-    const ang = Math.atan2(state.my - bY, state.mx - bX);
+    const ang = Math.atan2(state.my - bY, state.mx - bX)+Math.PI;
     
     fxCtx.save();
     fxCtx.translate(bX, bY); 
