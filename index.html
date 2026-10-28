@@ -22,6 +22,8 @@ const fxCanvas=document.getElementById('fxCanvas'), fxCtx=fxCanvas.getContext('2
 const scoreEl=document.getElementById('score');
 
 let W,H; 
+let imgLoaded = false; // 【修复：把变量声明提到最前面】
+
 function resize(){
   W=window.innerWidth; H=window.innerHeight;
   bgCanvas.width=fxCanvas.width=W; 
@@ -30,13 +32,10 @@ function resize(){
 }
 window.addEventListener('resize',resize); resize();
 
-// ========================================================
-// 确保你的图片名字和下面一模一样！(如果是png格式，请改成 monster.png)
-// ========================================================
+// 注意这里：名字是纯正的 monster.jpg
 const bgImageSrc = 'monster.jpg'; 
 const bgImg = new Image();
 bgImg.src = bgImageSrc;
-let imgLoaded = false;
 
 bgImg.onload = ()=>{ 
   imgLoaded = true; 
@@ -45,7 +44,7 @@ bgImg.onload = ()=>{
 };
 bgImg.onerror = ()=>{ 
   document.body.style.background = '#220000';
-  document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:50%;font-size:20px;">图片加载失败<br>请检查 monster.jpg 是否和 html 在同一个目录</h1>';
+  document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:50%;font-size:20px;">图片加载失败<br>请检查仓库里的图片是否叫 monster.jpg</h1>';
 };
 
 function drawBgImage(){
@@ -93,12 +92,7 @@ let score=0;
 let bossEye, particles=[], splats=[];
 let t0=performance.now();
 
-// ========================================================
-// 【微调区】根据你手机屏幕比例对准原图眼珠！
-// bossX: 水平位置（0.5是正中间）
-// bossY: 垂直位置（0.42偏上，想往上去改小，如0.38；往下改大，如0.45）
-// bossR: 眼睛大小（0.13是默认，觉得小可以改0.15）
-// ========================================================
+// 微调区
 const bossX = 0.5;  
 const bossY = 0.42; 
 const bossR = 0.13; 
