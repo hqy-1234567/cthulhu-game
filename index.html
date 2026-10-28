@@ -218,40 +218,36 @@ function loop() {
     if(s.y > H || s.x > W) shells.splice(i, 1);
   }
   
-  // 画枪（调整旋转轴心到绿色区域）
+  // 画枪（靠近怪物一点点，准星完全独立）
 if(gunLoaded) {
-  // 【核心参数】修改这里调整绿色区域的位置
-  const bX = W * 0.75; // 横向位置（0.75 代表屏幕宽度的 75% 处）
-  const bY = H * 0.88; // 纵向位置（0.88 代表屏幕高度的 88% 处，也就是偏下的位置）
+  // 【位置调整】把 bX 和 bY 的数值改小，让枪往左上方移动
+  const bX = W * 0.65; // 原本是 0.75，改小让枪往左（靠近怪物）靠
+  const bY = H * 0.75; // 原本是 0.88，改小让枪往上提
   
   const ang = Math.atan2(state.mouseY - bY, state.mouseX - bX);
   const rX = Math.cos(ang) * state.recoil;
   const rY = Math.sin(ang) * state.recoil;
 
   fxCtx.save(); 
-  // 1. 把坐标轴移动到绿色位置（旋转中心）
   fxCtx.translate(bX + rX, bY + rY); 
   fxCtx.rotate(ang + state.tilt);
   
-  // 2. 调整枪的大小
+  // 大小适中
   fxCtx.scale(0.8, 0.8);
 
   fxCtx.save(); 
   fxCtx.rotate(-Math.PI * 0.15); 
   fxCtx.scale(-1, 1);            
-  
-  // 3. 调整枪的偏移。
-  // drawImage 的坐标(-200, -250)意味着：把枪的中心对准绿色区域。
-  // 如果枪头偏离了中心，调整这两个数字（比如 -150, -200）可以把枪整体往右下角推
-  fxCtx.drawImage(gunImg, -200, -250, 500, 375); 
+  // 微调 drawImage 把枪的握把对齐到旋转中心
+  fxCtx.drawImage(gunImg, -180, -200, 500, 375); 
   fxCtx.restore();
 
-  // 开火火焰（跟着枪管走）
+  // 开火火焰
   if(state.flash > 0) {
     fxCtx.save(); 
     fxCtx.rotate(-Math.PI * 0.15); 
     fxCtx.scale(-1, 1);          
-    const fx = -180, fy = -260;  
+    const fx = -160, fy = -210;  
     fxCtx.globalAlpha = state.flash; 
     fxCtx.fillStyle = "#fff"; 
     fxCtx.beginPath();
@@ -265,21 +261,26 @@ if(gunLoaded) {
   fxCtx.restore(); 
 }
 
-// 最后画准星（绝对置顶）
-fxCtx.restore(); 
+// ==========================================
+// 最后的准星（永远在最上层，且不跟枪绑定）
+// ==========================================
+fxCtx.restore(); // 退出震动层
 
 fxCtx.save(); 
 fxCtx.translate(state.mouseX, state.mouseY); 
 
-// 【新增】给准星加一圈黑色的描边，这样即使移到白底或红底上也能看清
-fxCtx.strokeStyle="rgba(0,0,0,0.8)"; fxCtx.lineWidth=4; 
+// 准星外层：黑色描边（防止跟底色或枪混在一起）
+fxCtx.strokeStyle="rgba(0,0,0,0.9)"; 
+fxCtx.lineWidth=5; 
 fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
 
-// 红色内圈
-fxCtx.strokeStyle="#f00"; fxCtx.lineWidth=2; 
+// 准星内层：亮红色
+fxCtx.strokeStyle="#ff0000"; 
+fxCtx.lineWidth=2; 
 fxCtx.beginPath(); fxCtx.arc(0,0,14,0,Math.PI*2); fxCtx.stroke();
 
-fxCtx.beginPath(); fxCtx.arc(0,0,2,0,Math.PI*2); fxCtx.fillStyle="#f00"; fxCtx.fill();
+// 中心红点
+fxCtx.beginPath(); fxCtx.arc(0,0,3,0,Math.PI*2); fxCtx.fillStyle="#ff0000"; fxCtx.fill();
 
 fxCtx.restore();
   
