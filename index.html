@@ -30,6 +30,7 @@
   const scoreEl = document.getElementById("score"), ammoEl = document.getElementById("ammo"), redFlashEl = document.getElementById("redFlash");
   let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
 
+  
   // ==================== 资源加载 ====================
   const monsterImg = new Image(); monsterImg.src = "monster.jpg"; let monsterImgLoaded = false; monsterImg.onload = () => { monsterImgLoaded = true; };
   const handImg = new Image(); handImg.src = "shou.png"; let handImgLoaded = false; handImg.onload = () => { handImgLoaded = true; };
@@ -46,10 +47,14 @@
     hurt: 0, shake: 0, knockback: 0, breathPhase: 0, swell: 1.0
   };
 
+  
+  
   // ==================== 精准坐标 ====================
   const eyesData = [
+   
     // 主眼
     { x: 0.5, y: 0.45, r: 0.16, isBoss: true, hp: 20, maxHp: 20, alive: true, shake: 0, lookX: 0, lookY: 0, nextLookTime: 0, targetLookX: 0, targetLookY: 0 },
+   
     // 小眼
     { x: 0.49, y: 0.15, r: 0.04, isBoss: false, hp: 8, maxHp: 8, alive: true, shake: 0, lookX: 0, lookY: 0, nextLookTime: 0, targetLookX: 0, targetLookY: 0 },
     { x: 0.14, y: 0.40, r: 0.035, isBoss: false, hp: 8, maxHp: 8, alive: true, shake: 0, lookX: 0, lookY: 0, nextLookTime: 0, targetLookX: 0, targetLookY: 0 },
@@ -166,8 +171,8 @@
     for(let i = particles.length - 1; i >= 0; i--){ const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.vx *= p.drag; p.life -= p.decay; if(p.life <= 0) particles.splice(i, 1); }
     for(let i = shells.length - 1; i >= 0; i--){ const sh = shells[i]; sh.x += sh.vx; sh.y += sh.vy; sh.vy += 0.5; sh.vx *= 0.98; sh.rot += sh.rotSpeed; sh.life -= 0.012; if(sh.life <= 0) shells.splice(i, 1); }
 
-// ⬇️⬇️⬇️ 请在这里粘贴下方的【第二部分代码】 ⬇️⬇️⬇️
-      // ==================== 渲染层 ====================
+     
+    // ==================== 渲染层 ====================
     bgCtx.clearRect(0, 0, W, H);
     const shakeX = (Math.random() - 0.5) * state.screenShake, shakeY = (Math.random() - 0.5) * state.screenShake;
     
@@ -177,14 +182,17 @@
     if(monsterImgLoaded){
       bgCtx.save(); bgCtx.translate(monster.x + (Math.random() - 0.5) * monster.shake, monster.y + (Math.random() - 0.5) * monster.shake); 
       
+      
       // 1. 画怪物原图
       bgCtx.drawImage(monsterImg, -monster.w / 2, -monster.h / 2, monster.w, monster.h);
 
+      
       // 2. 画原图血肉拉扯（真实眼睛膨胀）
       for(let eye of eyesData){
         if(!eye.alive) continue;
         const ex = monster.w * (eye.x - 0.5), ey = monster.h * (eye.y - 0.5);
         const danger = 1 - (eye.hp / eye.maxHp);
+       
         // 受击越重，放大倍数越大，完美模拟肉体凸起
         const er = monster.w * eye.r * (1 + danger * 0.6); 
         const srcW = monsterImg.width * (eye.r * 2.5), srcH = monsterImg.height * (eye.r * 2.5);
@@ -193,7 +201,7 @@
         bgCtx.save(); 
         bgCtx.translate(ex + eye.lookX * (monster.w * 0.05), ey + eye.lookY * (monster.w * 0.05));
         
-        // 径向遮罩羽化，让它完美融入血肉
+       // 径向遮罩羽化，让它完美融入血肉
         bgCtx.beginPath(); 
         const maskGrad = bgCtx.createRadialGradient(0, 0, er*0.5, 0, 0, er*1.2);
         maskGrad.addColorStop(0, 'rgba(0,0,0,1)'); 
@@ -214,6 +222,7 @@
         bgCtx.restore();
       }
 
+      
       // 3. 黑色血管暴起
       const veinIntensity = Math.min(1, (monster.swell - 1.0) * 5 + monster.hurt * 0.5);
       if (veinIntensity > 0.05) {
@@ -236,6 +245,7 @@
     }
     bgCtx.restore();
 
+   
     // ==================== 特效层 ====================
     fxCtx.clearRect(0, 0, W, H);
     fxCtx.save(); fxCtx.translate(shakeX, shakeY);
